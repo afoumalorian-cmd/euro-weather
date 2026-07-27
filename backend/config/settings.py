@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # Third-party applications
     "rest_framework", #API framework for building web APIs
     "corsheaders", #permettre à React de contacter Django
+    "drf_spectacular",
 
     # Local applications
     "accounts", #Authentication and user management
@@ -141,15 +142,43 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
+    # JWT authentication is used by protected API endpoints.
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+
+    # Every endpoint is protected by default.
+    # Public endpoints explicitly use AllowAny.
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+
+    # drf-spectacular generates the OpenAPI schema
+    # used by Swagger UI and ReDoc.
+    "DEFAULT_SCHEMA_CLASS": (
+        "drf_spectacular.openapi.AutoSchema"
+    ),
 }
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
 ]
+
+
+# General information displayed in Swagger UI and ReDoc.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Euro Weather API",
+    "DESCRIPTION": (
+        "REST API for user authentication and European weather data, "
+        "including current conditions, forecasts and historical weather."
+    ),
+    "VERSION": "1.0.0",
+
+    # Keep the OpenAPI schema endpoint visible in the documentation.
+    "SERVE_INCLUDE_SCHEMA": True,
+
+    # Split request and response schemas when they differ.
+    # This is useful for write-only fields such as passwords.
+    "COMPONENT_SPLIT_REQUEST": True,
+}
