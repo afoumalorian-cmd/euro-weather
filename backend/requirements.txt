@@ -5,3 +5,4 @@ python-dotenv
 requests
 django-cors-headers
 djangorestframework-simplejwt
+drf-spectacular
