@@ -2,7 +2,7 @@ Django>=5.2,<6.0
 djangorestframework
 psycopg[binary]
 python-dotenv
-requests
+requests>=2.32,<3.0
 django-cors-headers
 djangorestframework-simplejwt
 drf-spectacular

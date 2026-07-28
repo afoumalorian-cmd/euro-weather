@@ -44,4 +44,9 @@ urlpatterns = [
         ),
         name="redoc",
     ),
+    
+    path(
+    "api/weather/",
+    include("weather.urls"),
+    ),
 ]
