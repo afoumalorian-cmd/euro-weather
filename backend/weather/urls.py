@@ -1,7 +1,11 @@
 from django.urls import path
 
-from weather.views import CurrentWeatherView, LocationSearchView
-from weather.views import LocationSearchView
+from weather.views import (
+    CurrentWeatherView,
+    DailyForecastByCityView,
+    DailyForecastView,
+    LocationSearchView,
+)
 
 
 app_name = "weather"
@@ -16,5 +20,15 @@ urlpatterns = [
         "current/",
         CurrentWeatherView.as_view(),
         name="current-weather",
+    ),
+    path(
+        "forecast/daily/",
+        DailyForecastView.as_view(),
+        name="daily-forecast",
+    ),
+    path(
+        "forecast/daily/by-city/",
+        DailyForecastByCityView.as_view(),
+        name="daily-forecast-by-city",
     ),
 ]

@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 
 from weather.serializers import (
     CurrentWeatherQuerySerializer,
+    DailyForecastByCityQuerySerializer,
+    DailyForecastQuerySerializer,
     LocationSearchQuerySerializer,
 )
 from weather.services.geocoding_service import (
@@ -17,6 +19,11 @@ from weather.services.current_weather_service import (
     CurrentWeatherService,
     CurrentWeatherServiceError,
     CurrentWeatherServiceUnavailableError,
+)
+from weather.services.daily_forecast_service import (
+    DailyForecastService,
+    DailyForecastServiceError,
+    DailyForecastServiceUnavailableError,
 )
 
 class LocationSearchView(APIView):
@@ -322,6 +329,357 @@ class CurrentWeatherView(APIView):
             {
                 "success": True,
                 "data": weather_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+class DailyForecastView(APIView):
+    """
+    Return a daily weather forecast for a given latitude,
+    longitude, and number of forecast days.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get daily weather forecast",
+        description=(
+            "Returns a daily weather forecast for the provided "
+            "latitude and longitude using the Open-Meteo API."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="latitude",
+                description="Latitude between -90 and 90.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris latitude",
+                        value=48.8566,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="longitude",
+                description="Longitude between -180 and 180.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris longitude",
+                        value=2.3522,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="days",
+                description="Number of forecast days between 1 and 16.",
+                required=False,
+                type=int,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Seven days",
+                        value=7,
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "object",
+                            },
+                            "daily": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                },
+                            },
+                            "units": {
+                                "type": "object",
+                            },
+                        },
+                    },
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "errors": {
+                        "type": "object",
+                    },
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Validate the coordinates and retrieve the daily forecast.
+        """
+
+        # Validate latitude, longitude, and forecast duration.
+        serializer = DailyForecastQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        latitude = serializer.validated_data["latitude"]
+        longitude = serializer.validated_data["longitude"]
+        days = serializer.validated_data["days"]
+
+        try:
+            # Retrieve the forecast from Open-Meteo.
+            forecast_data = DailyForecastService.get_daily_forecast(
+                latitude=latitude,
+                longitude=longitude,
+                days=days,
+            )
+
+        except DailyForecastServiceUnavailableError as exc:
+            # Return 503 when the external weather service is unavailable.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except DailyForecastServiceError as exc:
+            # Return 502 when the external service returns invalid data.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "data": forecast_data,
+            },
+            status=status.HTTP_200_OK,
+        )        
+class DailyForecastByCityView(APIView):
+    """
+    Return a daily weather forecast using a city
+    and a full country name.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get daily forecast by city and country",
+        description=(
+            "Searches for a city in the specified country, resolves "
+            "its coordinates, and retrieves its daily forecast."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="city",
+                description="City or location name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris",
+                        value="Paris",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="country",
+                description="Full country name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "France",
+                        value="France",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="days",
+                description="Number of forecast days between 1 and 16.",
+                required=False,
+                type=int,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Seven days",
+                        value=7,
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "location": {"type": "object"},
+                    "data": {"type": "object"},
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "errors": {"type": "object"},
+                },
+            },
+            404: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"},
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"},
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"},
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Resolve the city coordinates and retrieve its daily forecast.
+        """
+
+        # Validate the city, country, and forecast duration.
+        serializer = DailyForecastByCityQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        city = serializer.validated_data["city"]
+        country = serializer.validated_data["country"]
+        days = serializer.validated_data["days"]
+
+        try:
+            # Find a location matching both the city and country name.
+            location = GeocodingService.find_location_by_country_name(
+                city=city,
+                country=country,
+            )
+
+            if location is None:
+                return Response(
+                    {
+                        "success": False,
+                        "error": (
+                            "No location was found for the provided "
+                            "city and country."
+                        ),
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Retrieve the forecast using the resolved coordinates.
+            forecast_data = DailyForecastService.get_daily_forecast(
+                latitude=location["latitude"],
+                longitude=location["longitude"],
+                days=days,
+            )
+
+        except (
+            GeocodingServiceUnavailableError,
+            DailyForecastServiceUnavailableError,
+        ) as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except (
+            GeocodingServiceError,
+            DailyForecastServiceError,
+        ) as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "location": location,
+                "data": forecast_data,
             },
             status=status.HTTP_200_OK,
         )
