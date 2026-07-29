@@ -1,5 +1,6 @@
 from django.urls import path
 
+from weather.views import CurrentWeatherView, LocationSearchView
 from weather.views import LocationSearchView
 
 
@@ -10,5 +11,10 @@ urlpatterns = [
         "locations/search/",
         LocationSearchView.as_view(),
         name="location-search",
+    ),
+    path(
+        "current/",
+        CurrentWeatherView.as_view(),
+        name="current-weather",
     ),
 ]

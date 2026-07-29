@@ -32,3 +32,23 @@ class LocationSearchQuerySerializer(serializers.Serializer):
             )
 
         return cleaned_value
+    
+    
+class CurrentWeatherQuerySerializer(serializers.Serializer):
+    """
+    Validate the coordinates used to retrieve current weather data.
+    """
+
+    latitude = serializers.FloatField(
+        required=True,
+        min_value=-90,
+        max_value=90,
+        help_text="Latitude between -90 and 90.",
+    )
+
+    longitude = serializers.FloatField(
+        required=True,
+        min_value=-180,
+        max_value=180,
+        help_text="Longitude between -180 and 180.",
+    )

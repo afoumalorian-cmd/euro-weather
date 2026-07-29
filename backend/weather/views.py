@@ -4,13 +4,20 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from weather.serializers import LocationSearchQuerySerializer
+from weather.serializers import (
+    CurrentWeatherQuerySerializer,
+    LocationSearchQuerySerializer,
+)
 from weather.services.geocoding_service import (
     GeocodingService,
     GeocodingServiceError,
     GeocodingServiceUnavailableError,
 )
-
+from weather.services.current_weather_service import (
+    CurrentWeatherService,
+    CurrentWeatherServiceError,
+    CurrentWeatherServiceUnavailableError,
+)
 
 class LocationSearchView(APIView):
     """
@@ -154,6 +161,167 @@ class LocationSearchView(APIView):
                 "success": True,
                 "count": len(locations),
                 "results": locations,
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+        
+        
+class CurrentWeatherView(APIView):
+    """
+    Return the current weather conditions for a given
+    latitude and longitude.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get current weather",
+        description=(
+            "Returns the current weather conditions for the provided "
+            "latitude and longitude using the Open-Meteo API."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="latitude",
+                description="Latitude between -90 and 90.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris latitude",
+                        value=48.8566,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="longitude",
+                description="Longitude between -180 and 180.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris longitude",
+                        value=2.3522,
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "object",
+                            },
+                            "current": {
+                                "type": "object",
+                            },
+                            "units": {
+                                "type": "object",
+                            },
+                        },
+                    },
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "errors": {
+                        "type": "object",
+                    },
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Validate the coordinates, call the weather service,
+        and return a normalized API response.
+        """
+
+        # Validate latitude and longitude from the query parameters.
+        serializer = CurrentWeatherQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        latitude = serializer.validated_data["latitude"]
+        longitude = serializer.validated_data["longitude"]
+
+        try:
+            # Retrieve the current weather from Open-Meteo.
+            weather_data = CurrentWeatherService.get_current_weather(
+                latitude=latitude,
+                longitude=longitude,
+            )
+
+        except CurrentWeatherServiceUnavailableError as exc:
+            # Return 503 when the external weather service cannot be reached.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except CurrentWeatherServiceError as exc:
+            # Return 502 when Open-Meteo returns an invalid response.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "data": weather_data,
             },
             status=status.HTTP_200_OK,
         )
