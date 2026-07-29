@@ -1,6 +1,7 @@
 from django.urls import path
 
 from weather.views import CurrentWeatherView, LocationSearchView
+from weather.views import LocationSearchView
 
 
 app_name = "weather"
