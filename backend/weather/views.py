@@ -8,6 +8,7 @@ from weather.serializers import (
     CurrentWeatherQuerySerializer,
     DailyForecastByCityQuerySerializer,
     DailyForecastQuerySerializer,
+    HourlyForecastByCityQuerySerializer,
     LocationSearchQuerySerializer,
 )
 from weather.services.geocoding_service import (
@@ -24,6 +25,11 @@ from weather.services.daily_forecast_service import (
     DailyForecastService,
     DailyForecastServiceError,
     DailyForecastServiceUnavailableError,
+)
+from weather.services.hourly_forecast_service import (
+    HourlyForecastService,
+    HourlyForecastServiceError,
+    HourlyForecastServiceUnavailableError,
 )
 
 class LocationSearchView(APIView):
@@ -667,6 +673,221 @@ class DailyForecastByCityView(APIView):
             GeocodingServiceError,
             DailyForecastServiceError,
         ) as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "location": location,
+                "data": forecast_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+class HourlyForecastByCityView(APIView):
+    """
+    Return an hourly weather forecast using a city
+    and a full country name.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get hourly forecast by city and country",
+        description=(
+            "Searches for a city in the specified country, resolves "
+            "its coordinates, and retrieves its hourly weather forecast."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="city",
+                description="City or location name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris",
+                        value="Paris",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="country",
+                description="Full country name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "France",
+                        value="France",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="hours",
+                description="Number of forecast hours between 1 and 168.",
+                required=False,
+                type=int,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Twenty-four hours",
+                        value=24,
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "location": {
+                        "type": "object",
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "object",
+                            },
+                            "hourly": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                },
+                            },
+                            "units": {
+                                "type": "object",
+                            },
+                        },
+                    },
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "errors": {
+                        "type": "object",
+                    },
+                },
+            },
+            404: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Resolve the city coordinates and retrieve its hourly forecast.
+        """
+
+        # Validate the city, country, and forecast duration.
+        serializer = HourlyForecastByCityQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        city = serializer.validated_data["city"]
+        country = serializer.validated_data["country"]
+        hours = serializer.validated_data["hours"]
+
+        try:
+            # Find a location matching both the city and country name.
+            location = GeocodingService.find_location_by_country_name(
+                city=city,
+                country=country,
+            )
+
+            if location is None:
+                return Response(
+                    {
+                        "success": False,
+                        "error": (
+                            "No location was found for the provided "
+                            "city and country."
+                        ),
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Retrieve the hourly forecast using the resolved coordinates.
+            forecast_data = HourlyForecastService.get_hourly_forecast(
+                latitude=location["latitude"],
+                longitude=location["longitude"],
+                hours=hours,
+            )
+
+        except (
+            GeocodingServiceUnavailableError,
+            HourlyForecastServiceUnavailableError,
+        ) as exc:
+            # Return 503 when an external service cannot be reached.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except (
+            GeocodingServiceError,
+            HourlyForecastServiceError,
+        ) as exc:
+            # Return 502 when an external service returns invalid data.
             return Response(
                 {
                     "success": False,
