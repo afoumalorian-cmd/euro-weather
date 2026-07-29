@@ -4,6 +4,7 @@ from weather.views import (
     CurrentWeatherView,
     DailyForecastByCityView,
     DailyForecastView,
+    HourlyForecastByCityView,
     LocationSearchView,
 )
 
@@ -30,5 +31,10 @@ urlpatterns = [
         "forecast/daily/by-city/",
         DailyForecastByCityView.as_view(),
         name="daily-forecast-by-city",
+    ),
+    path(
+        "forecast/hourly/by-city/",
+        HourlyForecastByCityView.as_view(),
+        name="hourly-forecast-by-city",
     ),
 ]

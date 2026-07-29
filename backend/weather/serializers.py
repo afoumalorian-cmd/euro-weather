@@ -126,3 +126,49 @@ class DailyForecastByCityQuerySerializer(serializers.Serializer):
         """
 
         return value.strip()
+    
+class HourlyForecastByCityQuerySerializer(serializers.Serializer):
+    """
+    Validate the city, country, and number of forecast hours
+    used to retrieve an hourly weather forecast.
+    """
+
+    city = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        min_length=2,
+        max_length=100,
+        trim_whitespace=True,
+        help_text="City or location name, for example Paris.",
+    )
+
+    country = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        min_length=2,
+        max_length=100,
+        trim_whitespace=True,
+        help_text="Full country name, for example France.",
+    )
+
+    hours = serializers.IntegerField(
+        required=False,
+        default=24,
+        min_value=1,
+        max_value=168,
+        help_text="Number of forecast hours between 1 and 168.",
+    )
+
+    def validate_city(self, value: str) -> str:
+        """
+        Remove unnecessary whitespace from the city name.
+        """
+
+        return value.strip()
+
+    def validate_country(self, value: str) -> str:
+        """
+        Remove unnecessary whitespace from the country name.
+        """
+
+        return value.strip()
