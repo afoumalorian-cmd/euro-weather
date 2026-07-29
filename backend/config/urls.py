@@ -19,7 +19,12 @@ urlpatterns = [
         "api/auth/",
         include("accounts.urls"),
     ),
-
+    
+    # Weather endpoints.
+    path(
+        "api/weather/",
+        include("weather.urls", namespace="weather"),
+    ),
     # Raw OpenAPI schema in YAML/JSON format.
     path(
         "api/schema/",
