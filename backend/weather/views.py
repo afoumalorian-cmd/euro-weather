@@ -8,6 +8,7 @@ from weather.serializers import (
     CurrentWeatherQuerySerializer,
     DailyForecastByCityQuerySerializer,
     DailyForecastQuerySerializer,
+    HistoricalWeatherByCityQuerySerializer,
     HourlyForecastByCityQuerySerializer,
     LocationSearchQuerySerializer,
 )
@@ -30,6 +31,11 @@ from weather.services.hourly_forecast_service import (
     HourlyForecastService,
     HourlyForecastServiceError,
     HourlyForecastServiceUnavailableError,
+)
+from weather.services.historical_weather_service import (
+    HistoricalWeatherService,
+    HistoricalWeatherServiceError,
+    HistoricalWeatherServiceUnavailableError,
 )
 
 class LocationSearchView(APIView):
@@ -903,6 +909,245 @@ class HourlyForecastByCityView(APIView):
                 "success": True,
                 "location": location,
                 "data": forecast_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+class HistoricalWeatherByCityView(APIView):
+    """
+    Return historical daily weather data using a city,
+    country, start date, and end date.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get historical weather by city and country",
+        description=(
+            "Searches for a city in the specified country, resolves "
+            "its coordinates, and retrieves historical daily weather "
+            "data for the selected date range."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="city",
+                description="City or location name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris",
+                        value="Paris",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="country",
+                description="Full country name.",
+                required=True,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "France",
+                        value="France",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="start_date",
+                description="First historical date in YYYY-MM-DD format.",
+                required=True,
+                type={
+                    "type": "string",
+                    "format": "date",
+                },
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Start date",
+                        value="2025-07-01",
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="end_date",
+                description="Last historical date in YYYY-MM-DD format.",
+                required=True,
+                type={
+                    "type": "string",
+                    "format": "date",
+                },
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "End date",
+                        value="2025-07-07",
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "location": {
+                        "type": "object",
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "object",
+                            },
+                            "daily": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                },
+                            },
+                            "units": {
+                                "type": "object",
+                            },
+                        },
+                    },
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "errors": {
+                        "type": "object",
+                    },
+                },
+            },
+            404: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Resolve the city coordinates and retrieve historical weather data.
+        """
+
+        # Validate the city, country, and historical date range.
+        serializer = HistoricalWeatherByCityQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        city = serializer.validated_data["city"]
+        country = serializer.validated_data["country"]
+        start_date = serializer.validated_data["start_date"]
+        end_date = serializer.validated_data["end_date"]
+
+        try:
+            # Find a location matching both the city and country name.
+            location = GeocodingService.find_location_by_country_name(
+                city=city,
+                country=country,
+            )
+
+            if location is None:
+                return Response(
+                    {
+                        "success": False,
+                        "error": (
+                            "No location was found for the provided "
+                            "city and country."
+                        ),
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Retrieve historical weather using the resolved coordinates.
+            historical_data = (
+                HistoricalWeatherService.get_historical_weather(
+                    latitude=location["latitude"],
+                    longitude=location["longitude"],
+                    start_date=start_date.isoformat(),
+                    end_date=end_date.isoformat(),
+                )
+            )
+
+        except (
+            GeocodingServiceUnavailableError,
+            HistoricalWeatherServiceUnavailableError,
+        ) as exc:
+            # Return 503 when an external service cannot be reached.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except (
+            GeocodingServiceError,
+            HistoricalWeatherServiceError,
+        ) as exc:
+            # Return 502 when an external service returns invalid data.
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "location": location,
+                "data": historical_data,
             },
             status=status.HTTP_200_OK,
         )
