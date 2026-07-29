@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CloudRain,
   CloudSun,
   Gauge,
@@ -106,9 +113,72 @@ function getWindDirection(degrees) {
 
   return directions[index];
 }
+/**
+ * Return a greeting adapted to the current local hour.
+ */
+function getGreeting() {
+  const currentHour = new Date().getHours();
+
+  if (currentHour < 12) {
+    return "Good morning";
+  }
+
+  if (currentHour < 18) {
+    return "Good afternoon";
+  }
+
+  return "Good evening";
+}
+
+/**
+ * Return the initials used by the profile avatar.
+ */
+function getInitials(username) {
+  if (!username) {
+    return "U";
+  }
+
+  return username
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+/**
+ * Scroll the hourly forecast carousel in either direction.
+ */
+function scrollHourlyForecast(direction) {
+  const carousel = hourlyCarouselRef.current;
+
+  if (!carousel) {
+    return;
+  }
+
+  const scrollDistance = Math.max(
+    carousel.clientWidth * 0.75,
+    420,
+  );
+
+  carousel.scrollBy({
+    left: direction === "next"
+      ? scrollDistance
+      : -scrollDistance,
+    behavior: "smooth",
+  });
+}
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const hourlyCarouselRef = useRef(null);
+
+  const hourlySectionRef = useRef(null);
+
+  const username =
+    localStorage.getItem("username")?.trim() || "Weather explorer";
+
+  const greeting = getGreeting();
+  const userInitials = getInitials(username);
 
   const [city, setCity] = useState("Paris");
   const [country, setCountry] = useState("France");
@@ -142,6 +212,7 @@ function DashboardPage() {
   }, [currentWeather]);
 
   const todayForecast = dailyForecast[0] ?? null;
+
 
   /**
    * Load daily, current, and hourly weather for one location.
@@ -276,6 +347,50 @@ function DashboardPage() {
   }
 
   /**
+ * Load the hourly forecast for a day selected
+ * from the daily forecast list.
+ */
+async function handleDailyForecastSelect(forecastDate) {
+  if (!forecastDate || !city.trim() || !country.trim()) {
+    return;
+  }
+
+  setSelectedDate(forecastDate);
+  setHourlyLoading(true);
+  setError("");
+
+  try {
+    const response = await getHourlyForecastByCity({
+      city: city.trim(),
+      country: country.trim(),
+      forecastDate,
+    });
+
+    setHourlyForecast(response.data?.hourly ?? []);
+    setHourlyUnits(response.data?.units ?? {});
+
+    /*
+     * Move the user to the hourly forecast after
+     * selecting a day from the daily list.
+     */
+    window.requestAnimationFrame(() => {
+      hourlySectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  } catch (requestError) {
+    setError(
+      requestError instanceof Error
+        ? requestError.message
+        : "The hourly forecast could not be loaded.",
+    );
+  } finally {
+    setHourlyLoading(false);
+  }
+}
+
+  /**
    * Browser geolocation will be connected to a coordinate endpoint later.
    */
   function handleUseLocation() {
@@ -290,10 +405,13 @@ function DashboardPage() {
   function handleSignOut() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-    navigate("/login");
-  }
+    localStorage.removeItem("username");
+    localStorage.clear()
 
-  const displayedHourlyForecast = hourlyForecast.slice(0, 8);
+    navigate("/login", {
+      replace: true,
+    });
+  }
 
   return (
     <div className="weather-app">
@@ -357,12 +475,16 @@ function DashboardPage() {
             aria-label="Open profile menu"
           >
             <div className="profile-avatar">
-              LA
+              {userInitials}
             </div>
 
             <div className="profile-details">
-              <strong>Lorian</strong>
-              <span>Weather explorer</span>
+              <strong>{username}</strong>
+              <span>
+                {location
+                  ? `${location.name}, ${location.country}`
+                  : "Weather explorer"}
+              </span>
             </div>
 
             <ChevronDown size={17} />
@@ -388,7 +510,7 @@ function DashboardPage() {
             </div>
 
             <h1>
-              Good afternoon, Lorian.
+              {greeting}, {username}.
             </h1>
 
             <p>
@@ -711,8 +833,11 @@ function DashboardPage() {
           className="forecast-grid"
           id="forecast"
         >
-          <article className="forecast-panel hourly-panel">
-            <div className="panel-header">
+          <article
+            className="forecast-panel hourly-panel"
+            ref={hourlySectionRef}
+          >
+            <div className="panel-header hourly-panel-header">
               <div>
                 <p className="eyebrow">
                   Selected date
@@ -723,14 +848,37 @@ function DashboardPage() {
                 </h2>
               </div>
 
-              <input
-                className="forecast-date"
-                type="date"
-                value={selectedDate}
-                min={getTodayDate()}
-                aria-label="Select hourly forecast date"
-                onChange={handleForecastDateChange}
-              />
+              <div className="hourly-panel-actions">
+                <input
+                  className="forecast-date"
+                  type="date"
+                  value={selectedDate}
+                  min={getTodayDate()}
+                  aria-label="Select hourly forecast date"
+                  onChange={handleForecastDateChange}
+                />
+
+                <div
+                  className="carousel-controls"
+                  aria-label="Hourly forecast navigation"
+                >
+                  <button
+                    type="button"
+                    aria-label="Show previous hours"
+                    onClick={() => scrollHourlyForecast("previous")}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    aria-label="Show next hours"
+                    onClick={() => scrollHourlyForecast("next")}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {hourlyLoading ? (
@@ -741,39 +889,67 @@ function DashboardPage() {
                 />
                 Loading hourly forecast...
               </div>
+            ) : hourlyForecast.length === 0 ? (
+              <div className="forecast-loading">
+                No hourly forecast is available for this date.
+              </div>
             ) : (
-              <div className="hourly-list">
-                {displayedHourlyForecast.map((forecast) => {
-                  const presentation = getWeatherPresentation(
-                    forecast.weather_code,
-                    forecast.is_day,
-                  );
+              <div className="hourly-carousel-shell">
+                <div
+                  className="hourly-carousel"
+                  ref={hourlyCarouselRef}
+                >
+                  {hourlyForecast.map((forecast, index) => {
+                    const presentation = getWeatherPresentation(
+                      forecast.weather_code,
+                      forecast.is_day,
+                    );
 
-                  return (
-                    <div
-                      className="hourly-item"
-                      key={forecast.time}
-                    >
-                      <span>
-                        {formatTime(forecast.time)}
-                      </span>
+                    return (
+                      <article
+                        className={`hourly-slide ${
+                          index === 0
+                            ? "hourly-slide-active"
+                            : ""
+                        }`}
+                        key={forecast.time}
+                      >
+                        <span className="hourly-slide-time">
+                          {formatTime(forecast.time)}
+                        </span>
 
-                      <strong className="hourly-icon">
-                        {presentation.icon}
-                      </strong>
+                        <strong className="hourly-slide-icon">
+                          {presentation.icon}
+                        </strong>
 
-                      <strong>
-                        {forecast.temperature ?? "--"}
-                        {hourlyUnits.temperature ?? "°C"}
-                      </strong>
+                        <strong className="hourly-slide-temperature">
+                          {forecast.temperature ?? "--"}
+                          {hourlyUnits.temperature ?? "°C"}
+                        </strong>
 
-                      <small>
-                        {forecast.precipitation_probability ?? 0}
-                        {hourlyUnits.precipitation_probability ?? "%"}
-                      </small>
-                    </div>
-                  );
-                })}
+                        <span className="hourly-slide-condition">
+                          {presentation.label}
+                        </span>
+
+                        <div className="hourly-slide-details">
+                          <span>
+                            <CloudRain size={14} />
+
+                            {forecast.precipitation_probability ?? 0}
+                            {hourlyUnits.precipitation_probability ?? "%"}
+                          </span>
+
+                          <span>
+                            <Wind size={14} />
+
+                            {forecast.wind_speed ?? "--"}{" "}
+                            {hourlyUnits.wind_speed ?? "km/h"}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })} 
+                </div>
               </div>
             )}
           </article>
@@ -802,13 +978,19 @@ function DashboardPage() {
               {dailyForecast.slice(0, 7).map((forecast) => {
                 const presentation = getWeatherPresentation(
                   forecast.weather_code,
-                  true,
+                  true
                 );
 
                 return (
-                  <div
-                    className="daily-item"
+                  <button
+                    className={`daily-item daily-item-button ${
+                      selectedDate === forecast.date
+                        ? "daily-item-selected"
+                        : ""
+                    }`}
                     key={forecast.date}
+                    type="button"
+                    onClick={() => handleDailyForecastSelect(forecast.date)}
                   >
                     <span className="daily-icon">
                       {presentation.icon}
@@ -835,7 +1017,7 @@ function DashboardPage() {
                         {forecast.temperature_max ?? "--"}°
                       </strong>
                     </p>
-                  </div>
+                  </button>
                 );
               })}
             </div>
