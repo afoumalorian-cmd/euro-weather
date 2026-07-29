@@ -1,3 +1,4 @@
+import unicodedata
 from typing import Any
 
 import requests
@@ -5,22 +6,22 @@ import requests
 
 class GeocodingServiceError(Exception):
     """
-    Exception générique levée lorsqu'une erreur survient pendant
-    la communication avec l'API de géocodage Open-Meteo.
+    Base exception raised when the geocoding service
+    cannot return valid location data.
     """
 
 
 class GeocodingServiceUnavailableError(GeocodingServiceError):
     """
-    Exception levée lorsque l'API Open-Meteo est temporairement
-    indisponible ou inaccessible.
+    Exception raised when the Open-Meteo Geocoding API
+    is unavailable or does not respond before the timeout.
     """
 
 
 class GeocodingService:
     """
-    Service responsable de la communication avec
-    l'API de géocodage Open-Meteo.
+    Retrieve and normalize location data from
+    the Open-Meteo Geocoding API.
     """
 
     BASE_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -30,35 +31,34 @@ class GeocodingService:
     def search_locations(
         cls,
         query: str,
-        count: int = 5,
+        count: int = 10,
         language: str = "en",
     ) -> list[dict[str, Any]]:
         """
-        Recherche des lieux correspondant au texte fourni.
+        Search for locations matching the provided query.
 
         Args:
             query:
-                Nom de la ville ou du lieu recherché.
+                City or location name.
 
             count:
-                Nombre maximal de résultats demandés à Open-Meteo.
+                Maximum number of results requested from Open-Meteo.
 
             language:
-                Langue utilisée pour les résultats.
+                Language used for location names and country names.
 
         Returns:
-            Une liste de lieux normalisés.
+            A list of normalized locations.
 
         Raises:
             GeocodingServiceUnavailableError:
-                Lorsque l'API externe est inaccessible.
+                When Open-Meteo cannot be reached.
 
             GeocodingServiceError:
-                Lorsque la réponse reçue est invalide.
+                When Open-Meteo returns invalid data.
         """
 
         params = {
-            # Open-Meteo attend "name", tandis que notre API expose "query".
             "name": query,
             "count": count,
             "language": language,
@@ -72,7 +72,6 @@ class GeocodingService:
                 timeout=cls.REQUEST_TIMEOUT,
             )
 
-            # Déclenche une exception pour les réponses HTTP 4xx ou 5xx.
             response.raise_for_status()
 
         except requests.Timeout as exc:
@@ -100,13 +99,12 @@ class GeocodingService:
             payload = response.json()
         except ValueError as exc:
             raise GeocodingServiceError(
-                "The location service returned an invalid JSON response."
+                "The location service returned invalid JSON."
             ) from exc
 
         results = payload.get("results", [])
 
-        # Open-Meteo peut ne pas retourner la clé "results"
-        # lorsqu'aucune ville n'a été trouvée.
+        # Open-Meteo may omit the results field when no match is found.
         if not isinstance(results, list):
             raise GeocodingServiceError(
                 "The location service returned an invalid result format."
@@ -115,15 +113,58 @@ class GeocodingService:
         return [
             cls._normalize_location(location)
             for location in results
+            if isinstance(location, dict)
         ]
+
+    @classmethod
+    def find_location_by_country_name(
+        cls,
+        city: str,
+        country: str,
+    ) -> dict[str, Any] | None:
+        """
+        Return the best location matching a city and country name.
+
+        Args:
+            city:
+                City or location name.
+
+            country:
+                Full country name entered by the user.
+
+        Returns:
+            The best matching normalized location, or None when
+            no matching location is found.
+        """
+
+        # Request several ranked results because the same city name
+        # may exist in multiple countries.
+        locations = cls.search_locations(
+            query=city,
+            count=100,
+            language="en",
+        )
+
+        normalized_country = cls._normalize_text(country)
+
+        for location in locations:
+            location_country = location.get("country")
+
+            if not isinstance(location_country, str):
+                continue
+
+            if cls._normalize_text(location_country) == normalized_country:
+                return location
+
+        return None
 
     @staticmethod
     def _normalize_location(
         location: dict[str, Any],
     ) -> dict[str, Any]:
         """
-        Transforme la réponse Open-Meteo en une structure stable
-        contrôlée par notre propre API.
+        Convert an Open-Meteo location into a stable structure
+        controlled by this API.
         """
 
         return {
@@ -139,3 +180,22 @@ class GeocodingService:
             "admin2": location.get("admin2"),
             "population": location.get("population"),
         }
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        """
+        Normalize text for case-insensitive and accent-insensitive comparison.
+        """
+
+        normalized_value = unicodedata.normalize(
+            "NFKD",
+            value.strip(),
+        )
+
+        without_accents = "".join(
+            character
+            for character in normalized_value
+            if not unicodedata.combining(character)
+        )
+
+        return without_accents.casefold()

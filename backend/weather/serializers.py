@@ -52,3 +52,77 @@ class CurrentWeatherQuerySerializer(serializers.Serializer):
         max_value=180,
         help_text="Longitude between -180 and 180.",
     )
+
+class DailyForecastQuerySerializer(serializers.Serializer):
+    """
+    Validate the coordinates and number of forecast days
+    used to retrieve the daily weather forecast.
+    """
+
+    latitude = serializers.FloatField(
+        required=True,
+        min_value=-90,
+        max_value=90,
+        help_text="Latitude between -90 and 90.",
+    )
+
+    longitude = serializers.FloatField(
+        required=True,
+        min_value=-180,
+        max_value=180,
+        help_text="Longitude between -180 and 180.",
+    )
+
+    days = serializers.IntegerField(
+        required=False,
+        default=7,
+        min_value=1,
+        max_value=16,
+        help_text="Number of forecast days between 1 and 16.",
+    )
+    
+class DailyForecastByCityQuerySerializer(serializers.Serializer):
+    """
+    Validate the city, country name, and forecast duration
+    used to retrieve a daily weather forecast.
+    """
+
+    city = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        min_length=2,
+        max_length=100,
+        trim_whitespace=True,
+        help_text="City or location name, for example Paris.",
+    )
+
+    country = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        min_length=2,
+        max_length=100,
+        trim_whitespace=True,
+        help_text="Full country name, for example France.",
+    )
+
+    days = serializers.IntegerField(
+        required=False,
+        default=7,
+        min_value=1,
+        max_value=16,
+        help_text="Number of forecast days between 1 and 16.",
+    )
+
+    def validate_city(self, value: str) -> str:
+        """
+        Remove unnecessary whitespace from the city name.
+        """
+
+        return value.strip()
+
+    def validate_country(self, value: str) -> str:
+        """
+        Remove unnecessary whitespace from the country name.
+        """
+
+        return value.strip()
