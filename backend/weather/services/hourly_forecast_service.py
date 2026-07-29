@@ -44,15 +44,16 @@ class HourlyForecastService:
         "is_day",
     ]
 
+    
     @classmethod
     def get_hourly_forecast(
         cls,
         latitude: float,
         longitude: float,
-        hours: int = 24,
+        forecast_date: str,
     ) -> dict[str, Any]:
         """
-        Retrieve an hourly weather forecast for the provided coordinates.
+        Retrieve all hourly forecasts for one selected date.
 
         Args:
             latitude:
@@ -61,19 +62,12 @@ class HourlyForecastService:
             longitude:
                 Longitude between -180 and 180.
 
-            hours:
-                Number of forecast hours between 1 and 168.
+            forecast_date:
+                Selected forecast date in YYYY-MM-DD format.
 
         Returns:
-            A normalized dictionary containing location information,
-            hourly forecasts, and measurement units.
-
-        Raises:
-            HourlyForecastServiceUnavailableError:
-                When Open-Meteo cannot be reached.
-
-            HourlyForecastServiceError:
-                When Open-Meteo returns invalid or incomplete data.
+            A normalized dictionary containing the location,
+            24 hourly forecasts, and measurement units.
         """
 
         params = {
@@ -81,10 +75,11 @@ class HourlyForecastService:
             "longitude": longitude,
             "hourly": ",".join(cls.HOURLY_VARIABLES),
 
-            # Return hourly data starting from the current hour.
-            "forecast_hours": hours,
+            # Request all hourly values for one specific local date.
+            "start_date": forecast_date,
+            "end_date": forecast_date,
 
-            # Resolve local timestamps from the coordinates.
+            # Resolve timestamps using the location's local timezone.
             "timezone": "auto",
         }
 

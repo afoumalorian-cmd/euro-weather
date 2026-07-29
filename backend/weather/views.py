@@ -50,19 +50,18 @@ class LocationSearchView(APIView):
         ),
         parameters=[
             OpenApiParameter(
-                name="query",
-                description="City or location name to search for.",
+                name="forecast_date",
+                description="Selected forecast date.",
                 required=True,
-                type=str,
+                type={
+                    "type": "string",
+                    "format": "date",
+                },
                 location=OpenApiParameter.QUERY,
                 examples=[
                     OpenApiExample(
-                        "Paris",
-                        value="Paris",
-                    ),
-                    OpenApiExample(
-                        "London",
-                        value="London",
+                        "Selected date",
+                        value="2026-07-31",
                     ),
                 ],
             ),
@@ -732,15 +731,18 @@ class HourlyForecastByCityView(APIView):
                 ],
             ),
             OpenApiParameter(
-                name="hours",
-                description="Number of forecast hours between 1 and 168.",
-                required=False,
-                type=int,
+                name="forecast_date",
+                description="Selected forecast date in YYYY-MM-DD format.",
+                required=True,
+                type={
+                    "type": "string",
+                    "format": "date",
+                },
                 location=OpenApiParameter.QUERY,
                 examples=[
                     OpenApiExample(
-                        "Twenty-four hours",
-                        value=24,
+                        "Selected date",
+                        value="2026-07-31",
                     ),
                 ],
             ),
@@ -842,7 +844,7 @@ class HourlyForecastByCityView(APIView):
 
         city = serializer.validated_data["city"]
         country = serializer.validated_data["country"]
-        hours = serializer.validated_data["hours"]
+        forecast_date = serializer.validated_data["forecast_date"]
 
         try:
             # Find a location matching both the city and country name.
@@ -867,7 +869,7 @@ class HourlyForecastByCityView(APIView):
             forecast_data = HourlyForecastService.get_hourly_forecast(
                 latitude=location["latitude"],
                 longitude=location["longitude"],
-                hours=hours,
+                forecast_date=forecast_date.isoformat(),
             )
 
         except (
