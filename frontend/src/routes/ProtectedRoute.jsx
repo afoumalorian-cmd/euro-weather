@@ -1,10 +1,13 @@
-import { Navigate, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
+import { getAccessToken } from "../api/tokenStorage";
 
 function ProtectedRoute({ children }) {
   const location = useLocation();
-
-  // A dashboard route is accessible only when an access token exists.
-  const accessToken = localStorage.getItem("accessToken");
+  const accessToken = getAccessToken();
 
   if (!accessToken) {
     return (
