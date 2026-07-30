@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { loginUser } from "../api/authApi";
+import { storeTokens } from "../api/tokenStorage";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -80,14 +81,14 @@ function LoginPage() {
        * where tokens are nested inside a data property.
        */
       const accessToken =
-        response?.access ??
-        response?.data?.access ??
-        response?.tokens?.access;
+        response.access ??
+        response.access_token ??
+        response.accessToken;
 
       const refreshToken =
-        response?.refresh ??
-        response?.data?.refresh ??
-        response?.tokens?.refresh;
+        response.refresh ??
+        response.refresh_token ??
+        response.refreshToken;
 
       if (!accessToken || !refreshToken) {
         throw new Error(
@@ -95,9 +96,11 @@ function LoginPage() {
         );
       }
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      // Store the username to personalize the dashboard.
+      storeTokens({
+        accessToken,
+        refreshToken,
+      });
+
       localStorage.setItem("username", username);
 
       navigate("/dashboard", {

@@ -35,6 +35,7 @@ import {
   getHourlyForecastByCity,
 } from "../api/weatherApi";
 import { getWeatherPresentation } from "../utils/weatherCode";
+import { clearAuthentication } from "../api/tokenStorage";
 
 /**
  * Return today's date in YYYY-MM-DD format using local time.
@@ -403,10 +404,7 @@ async function handleDailyForecastSelect(forecastDate) {
    * Clear locally stored authentication data and return to login.
    */
   function handleSignOut() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("username");
-    localStorage.clear()
+    clearAuthentication();
 
     navigate("/login", {
       replace: true,
