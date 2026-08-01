@@ -10,6 +10,7 @@ import RegisterPage from "../pages/RegisterPage";
 import WeatherHistoryPage from "../pages/WeatherHistoryPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
+import UserProfilePage from "../pages/UserProfilePage";
 
 function AppRouter() {
   return (
@@ -55,6 +56,15 @@ function AppRouter() {
         element={
           <ProtectedRoute>
             <WeatherHistoryPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <UserProfilePage />
           </ProtectedRoute>
         }
       />

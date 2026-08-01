@@ -731,6 +731,7 @@ async function handleDailyForecastSelect(forecastDate) {
             className="profile-menu-button"
             type="button"
             aria-label="Open profile menu"
+            onClick={() => navigate("/profile")}
           >
             <div className="profile-avatar">
               {userInitials}
