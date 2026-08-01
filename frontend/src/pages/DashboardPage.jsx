@@ -27,6 +27,9 @@ import {
   Sunrise,
   Sunset,
   Wind,
+  Heart,
+  HeartOff,
+  Trash2
 } from "lucide-react";
 
 import {
@@ -34,6 +37,13 @@ import {
   getDailyForecastByCity,
   getHourlyForecastByCity,
 } from "../api/weatherApi";
+
+import {
+  createFavoriteCity,
+  deleteFavoriteCity,
+  getFavoriteCities,
+} from "../api/favoritesApi";
+
 import { getWeatherPresentation } from "../utils/weatherCode";
 import { clearAuthentication } from "../api/tokenStorage";
 
@@ -146,34 +156,37 @@ function getInitials(username) {
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 }
-/**
- * Scroll the hourly forecast carousel in either direction.
- */
-function scrollHourlyForecast(direction) {
-  const carousel = hourlyCarouselRef.current;
 
-  if (!carousel) {
-    return;
-  }
-
-  const scrollDistance = Math.max(
-    carousel.clientWidth * 0.75,
-    420,
-  );
-
-  carousel.scrollBy({
-    left: direction === "next"
-      ? scrollDistance
-      : -scrollDistance,
-    behavior: "smooth",
-  });
-}
 
 function DashboardPage() {
   const navigate = useNavigate();
   const hourlyCarouselRef = useRef(null);
-
   const hourlySectionRef = useRef(null);
+  const [favoritesMenuOpen, setFavoritesMenuOpen] = useState(false);
+
+  /**
+   * Scroll the hourly forecast carousel in either direction.
+   */
+  function scrollHourlyForecast(direction) {
+    const carousel = hourlyCarouselRef.current;
+
+    if (!carousel) {
+      return;
+    }
+
+    const scrollDistance = Math.max(
+      carousel.clientWidth * 0.75,
+      420,
+    );
+
+    carousel.scrollBy({
+      left:
+        direction === "next"
+          ? scrollDistance
+          : -scrollDistance,
+      behavior: "smooth",
+    });
+  }
 
   const username =
     localStorage.getItem("username")?.trim() || "Weather explorer";
@@ -198,6 +211,12 @@ function DashboardPage() {
   const [error, setError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
+  const [favorites, setFavorites] = useState([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [favoriteSaving, setFavoriteSaving] = useState(false);
+  const [deletingFavoriteId, setDeletingFavoriteId] = useState(null);
+  const [favoriteError, setFavoriteError] = useState("");
+
   const currentPresentation = useMemo(() => {
     if (!currentWeather) {
       return {
@@ -213,6 +232,20 @@ function DashboardPage() {
   }, [currentWeather]);
 
   const todayForecast = dailyForecast[0] ?? null;
+
+  const currentFavorite = useMemo(() => {
+    if (!location) {
+      return null;
+    }
+
+    return favorites.find(
+      (favorite) =>
+        favorite.city.toLowerCase() ===
+          location.name?.toLowerCase() &&
+        favorite.country.toLowerCase() ===
+          location.country?.toLowerCase(),
+    ) ?? null;
+  }, [favorites, location]);
 
 
   /**
@@ -289,6 +322,126 @@ function DashboardPage() {
   }
 
   /**
+   * Add or remove the currently displayed city from favorites.
+   */
+  async function handleFavoriteToggle() {
+    if (!location) {
+      return;
+    }
+
+    setFavoriteSaving(true);
+    setFavoriteError("");
+
+    try {
+      if (currentFavorite) {
+        await deleteFavoriteCity(currentFavorite.id);
+
+        setFavorites((currentFavorites) =>
+          currentFavorites.filter(
+            (favorite) =>
+              favorite.id !== currentFavorite.id,
+          ),
+        );
+
+        return;
+      }
+
+      const createdFavorite = await createFavoriteCity({
+        city: location.name,
+        country: location.country,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+
+      setFavorites((currentFavorites) => [
+        ...currentFavorites,
+        createdFavorite,
+      ]);
+    } catch (requestError) {
+      setFavoriteError(
+        requestError instanceof Error
+          ? requestError.message
+          : "The favorite city could not be updated.",
+      );
+    } finally {
+      setFavoriteSaving(false);
+    }
+  }
+
+  /**
+  * Load weather data for a selected favorite city.
+  */
+  async function handleFavoriteSelect(favorite) {
+    setCity(favorite.city);
+    setCountry(favorite.country);
+
+    await loadWeather({
+      requestedCity: favorite.city,
+      requestedCountry: favorite.country,
+      forecastDate: selectedDate,
+    });
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  }
+
+  /**
+   * Delete one city from the authenticated user's favorites.
+   */
+  async function handleFavoriteDelete(favorite) {
+    setDeletingFavoriteId(favorite.id);
+    setFavoriteError("");
+
+    try {
+      await deleteFavoriteCity(favorite.id);
+
+      setFavorites((currentFavorites) =>
+        currentFavorites.filter(
+          (currentFavoriteItem) =>
+            currentFavoriteItem.id !== favorite.id,
+        ),
+      );
+    } catch (requestError) {
+      setFavoriteError(
+        requestError instanceof Error
+          ? requestError.message
+          : "The favorite city could not be deleted.",
+      );
+    } finally {
+      setDeletingFavoriteId(null);
+    }
+  }
+
+  /**
+   * Load the authenticated user's favorite cities.
+   */
+  async function loadFavoriteCities() {
+    setFavoritesLoading(true);
+    setFavoriteError("");
+
+    try {
+      const response = await getFavoriteCities();
+
+      setFavorites(
+        Array.isArray(response)
+          ? response
+          : response?.results ?? [],
+      );
+    } catch (requestError) {
+      setFavoriteError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Favorite cities could not be loaded.",
+      );
+    } finally {
+      setFavoritesLoading(false);
+    }
+  }
+  /**
    * Load Paris when the dashboard is opened for the first time.
    */
   useEffect(() => {
@@ -297,8 +450,10 @@ function DashboardPage() {
       requestedCountry: "France",
       forecastDate: getTodayDate(),
     });
-  }, []);
 
+    loadFavoriteCities();
+  }, []);
+  
   /**
    * Submit a city and country search without reloading the page.
    */
@@ -467,6 +622,111 @@ async function handleDailyForecastSelect(forecastDate) {
             <span className="notification-dot" />
           </button>
 
+          {/* Favorite cities menu */}
+          <div className="favorites-menu-wrapper">
+            <button
+              className="header-action-button favorites-header-button"
+              type="button"
+              aria-label="Open favorite cities"
+              aria-expanded={favoritesMenuOpen}
+              onClick={() =>
+                setFavoritesMenuOpen((isOpen) => !isOpen)
+              }
+            >
+              <Heart size={18} />
+
+              {favorites.length > 0 ? (
+                <span className="favorites-header-count">
+                  {favorites.length}
+                </span>
+              ) : null}
+            </button>
+
+            {favoritesMenuOpen ? (
+              <div className="favorites-dropdown">
+                <div className="favorites-dropdown-header">
+                  <div>
+                    <span>Saved locations</span>
+                      <strong>Favorite cities</strong>
+                  </div>
+
+                  <span className="favorites-dropdown-count">
+                    {favorites.length}
+                  </span>
+                </div>
+
+                {favoritesLoading ? (
+                  <div className="favorites-dropdown-empty">
+                    <RefreshCw
+                      className="loading-spinner"
+                      size={18}
+                    />
+
+                    Loading favorites...
+                  </div>
+                ) : favorites.length === 0 ? (
+                  <div className="favorites-dropdown-empty">
+                    <Heart size={20} />
+
+                    <div>
+                      <strong>No favorite cities</strong>
+                      <span>
+                        Add the displayed city using the weather card.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="favorites-dropdown-list">
+                    {favorites.map((favorite) => (
+                      <div
+                        className="favorites-dropdown-item"
+                        key={favorite.id}
+                      >
+                        <button
+                          className="favorites-dropdown-select"
+                          type="button"
+                          onClick={() => {
+                            handleFavoriteSelect(favorite);
+                            setFavoritesMenuOpen(false);
+                          }}
+                        >
+                          <MapPin size={17} />
+
+                          <span>
+                            <strong>{favorite.city}</strong>
+                            <small>{favorite.country}</small>
+                          </span>
+                        </button>
+
+                        <button
+                          className="favorites-dropdown-delete"
+                          type="button"
+                          aria-label={`Remove ${favorite.city} from favorites`}
+                          disabled={
+                            deletingFavoriteId === favorite.id
+                          }
+                          onClick={() =>
+                            handleFavoriteDelete(favorite)
+                          }
+                        >
+                          {deletingFavoriteId === favorite.id ? (
+                              <RefreshCw
+                                className="loading-spinner"
+                                size={16}
+                            />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+          
+          {/* Profile */}
           <button
             className="profile-menu-button"
             type="button"
@@ -475,7 +735,8 @@ async function handleDailyForecastSelect(forecastDate) {
             <div className="profile-avatar">
               {userInitials}
             </div>
-
+            
+            
             <div className="profile-details">
               <strong>{username}</strong>
               <span>
@@ -494,6 +755,7 @@ async function handleDailyForecastSelect(forecastDate) {
             aria-label="Sign out"
             onClick={handleSignOut}
           >
+            {/* Logout */}
             <LogOut size={18} />
           </button>
         </div>
@@ -633,6 +895,13 @@ async function handleDailyForecastSelect(forecastDate) {
           </div>
         ) : null}
 
+        {favoriteError ? (
+          <div className="dashboard-error" role="alert">
+            <strong>Unable to update favorites</strong>
+            <span>{favoriteError}</span>
+          </div>
+        ) : null}
+
         <section
           className={`dashboard-grid ${
             loading ? "weather-content-loading" : ""
@@ -664,9 +933,44 @@ async function handleDailyForecastSelect(forecastDate) {
                 </p>
               </div>
 
-              <span className="live-badge">
-                Live
-              </span>
+              <div className="current-weather-actions">
+                <span className="live-badge">
+                  Live
+                </span>
+
+                <button
+                  className={`favorite-toggle-button ${
+                    currentFavorite
+                      ? "favorite-toggle-button-active"
+                      : ""
+                  }`}
+                  type="button"
+                  disabled={!location || favoriteSaving}
+                  aria-label={
+                    currentFavorite
+                      ? "Remove this city from favorites"
+                      : "Add this city to favorites"
+                  }
+                  onClick={handleFavoriteToggle}
+                >
+                  {favoriteSaving ? (
+                    <RefreshCw
+                      className="loading-spinner"
+                      size={18}
+                    />
+                  ) : currentFavorite ? (
+                    <HeartOff size={18} />
+                  ) : (
+                    <Heart size={18} />
+                  )}
+
+                  <span>
+                    {currentFavorite
+                      ? "Saved"
+                      : "Add favorite"}
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className="current-weather-main">

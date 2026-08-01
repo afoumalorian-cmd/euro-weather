@@ -1,8 +1,15 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveDestroyAPIView,
+)
+
+from weather.models import FavoriteCity
 
 from weather.serializers import (
     CurrentWeatherQuerySerializer,
@@ -10,6 +17,7 @@ from weather.serializers import (
     DailyForecastQuerySerializer,
     HistoricalWeatherByCityQuerySerializer,
     HourlyForecastByCityQuerySerializer,
+    FavoriteCitySerializer,
     LocationSearchQuerySerializer,
 )
 from weather.services.geocoding_service import (
@@ -56,18 +64,15 @@ class LocationSearchView(APIView):
         ),
         parameters=[
             OpenApiParameter(
-                name="forecast_date",
-                description="Selected forecast date.",
-                required=True,
-                type={
-                    "type": "string",
-                    "format": "date",
-                },
+                name="query",
+                description="City or location name to search for.",
+                required= True,
+                type=str,
                 location=OpenApiParameter.QUERY,
                 examples=[
-                    OpenApiExample(
-                        "Selected date",
-                        value="2026-07-31",
+                        OpenApiExample(
+                        "Search for Paris",
+                        value="Paris",
                     ),
                 ],
             ),
@@ -1150,4 +1155,100 @@ class HistoricalWeatherByCityView(APIView):
                 "data": historical_data,
             },
             status=status.HTTP_200_OK,
+        )
+        
+
+class FavoriteCityListCreateView(ListCreateAPIView):
+    """
+    List and create favorite cities for the authenticated user.
+    """
+
+    serializer_class = FavoriteCitySerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="List favorite cities",
+        description=(
+            "Returns all favorite cities owned by the authenticated user."
+        ),
+        responses={
+            200: FavoriteCitySerializer(many=True),
+        },
+        tags=["Favorite Cities"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Add a favorite city",
+        description=(
+            "Adds a new favorite city for the authenticated user."
+        ),
+        request=FavoriteCitySerializer,
+        responses={
+            201: FavoriteCitySerializer,
+        },
+        tags=["Favorite Cities"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """
+        Return only the favorite cities owned by the current user.
+        """
+
+        return FavoriteCity.objects.filter(
+            user=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        """
+        Assign the authenticated user to the new favorite city.
+        """
+
+        serializer.save(user=self.request.user)
+
+
+class FavoriteCityDetailView(RetrieveDestroyAPIView):
+    """
+    Retrieve or delete one favorite city owned by the current user.
+    """
+
+    serializer_class = FavoriteCitySerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Get a favorite city",
+        description=(
+            "Returns one favorite city owned by the authenticated user."
+        ),
+        responses={
+            200: FavoriteCitySerializer,
+        },
+        tags=["Favorite Cities"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Delete a favorite city",
+        description=(
+            "Deletes one favorite city owned by the authenticated user."
+        ),
+        responses={
+            204: None,
+        },
+        tags=["Favorite Cities"],
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
+    def get_queryset(self):
+        """
+        Restrict access to favorites owned by the current user.
+        """
+
+        return FavoriteCity.objects.filter(
+            user=self.request.user
         )
