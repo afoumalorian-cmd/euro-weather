@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
 import requests
 
+
+logger = logging.getLogger(__name__)
 
 class DailyForecastServiceError(Exception):
     """
@@ -108,6 +111,28 @@ class DailyForecastService:
             ) from exc
 
         except requests.HTTPError as exc:
+            upstream_response = exc.response
+
+            logger.error(
+                "Open-Meteo daily forecast request failed. "
+                "status_code=%s url=%s response=%s",
+                (
+                    upstream_response.status_code
+                    if upstream_response is not None
+                    else "unknown"
+                ),
+                (
+                    upstream_response.url
+                    if upstream_response is not None
+                    else cls.BASE_URL
+                ),
+                (
+                    upstream_response.text[:1000]
+                    if upstream_response is not None
+                    else "No response body."
+                ),
+            )
+
             raise DailyForecastServiceError(
                 "The forecast service returned an HTTP error."
             ) from exc
