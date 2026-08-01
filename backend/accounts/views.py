@@ -1,6 +1,7 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
+
 
 from .serializers import (
     RegisterSerializer,
@@ -40,22 +41,39 @@ class RegisterView(generics.CreateAPIView):
     # This also prevents an invalid JWT header from blocking registration.
     authentication_classes = []
 
-@extend_schema(
-    tags=["Authentication"],
-    summary="Get the authenticated user profile",
-    description=(
-        "Return the profile of the user identified by "
-        "the JWT access token."
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Authentication"],
+        summary="Get the authenticated user profile",
+        responses={
+            200: UserProfileSerializer,
+        },
     ),
-    responses={
-        200: UserProfileSerializer,
-    },
+    put=extend_schema(
+        tags=["Authentication"],
+        summary="Replace the authenticated user profile",
+        request=UserProfileSerializer,
+        responses={
+            200: UserProfileSerializer,
+        },
+    ),
+    patch=extend_schema(
+        tags=["Authentication"],
+        summary="Update the authenticated user profile",
+        request=UserProfileSerializer,
+        responses={
+            200: UserProfileSerializer,
+        },
+    ),
 )
-class ProfileView(generics.RetrieveAPIView):
+class ProfileView(generics.RetrieveUpdateAPIView):
     """
-    Return the profile of the currently authenticated user.
+    Retrieve or update the authenticated user's profile.
 
     GET /api/auth/profile/
+    PUT /api/auth/profile/
+    PATCH /api/auth/profile/
     """
 
     serializer_class = UserProfileSerializer
@@ -63,8 +81,7 @@ class ProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         """
-        request.user is populated by JWTAuthentication
-        after validating the Bearer access token.
+        Return the user authenticated by the JWT access token.
         """
 
         return self.request.user

@@ -302,6 +302,36 @@ export async function apiPost(
 }
 
 /**
+ * Perform an authenticated JSON PATCH request.
+ */
+export async function apiPatch(
+  path,
+  body,
+) {
+  const url = `${API_BASE_URL}${path}`;
+
+  const response = await authenticatedFetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload =
+    await readResponsePayload(response);
+
+  if (!response.ok) {
+    throw new Error(
+      extractErrorMessage(payload),
+    );
+  }
+
+  return payload;
+}
+
+
+/**
  * Perform an authenticated DELETE request.
  */
 export async function apiDelete(path) {

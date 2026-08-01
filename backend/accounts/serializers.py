@@ -92,7 +92,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer used to return the authenticated user's profile.
+    Serializer used to retrieve and update
+    the authenticated user's profile.
     """
 
     class Meta:
@@ -105,6 +106,44 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "date_joined",
         )
+        read_only_fields = (
+            "id",
+            "username",
+            "date_joined",
+        )
 
-        # The profile endpoint is currently read-only.
-        read_only_fields = fields
+    def validate_email(self, value):
+        """
+        Normalize the email and ensure that it is not
+        already used by another user.
+        """
+
+        normalized_email = value.strip().lower()
+
+        email_already_exists = (
+            User.objects
+            .filter(email__iexact=normalized_email)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        )
+
+        if email_already_exists:
+            raise serializers.ValidationError(
+                "An account already exists with this email address."
+            )
+
+        return normalized_email
+
+    def validate_first_name(self, value):
+        """
+        Normalize the user's first name.
+        """
+
+        return value.strip()
+
+    def validate_last_name(self, value):
+        """
+        Normalize the user's last name.
+        """
+
+        return value.strip()
