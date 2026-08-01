@@ -1,6 +1,7 @@
-# Environment variables
+# Local environment variables
 .env
-.env.*
+.env.local
+.env.prod
 
 # Keep the example file
 !.env.example

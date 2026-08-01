@@ -15,23 +15,40 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+def get_environment_list(variable_name, default=""):
+    """
+    Return a comma-separated environment variable as a clean list.
+    """
+
+    value = os.getenv(variable_name, default)
+
+    return [
+        item.strip()
+        for item in value.split(",")
+        if item.strip()
+    ]
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "unsafe-development-secret-key",
-)
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+if not SECRET_KEY:
+    raise RuntimeError(
+        "The SECRET_KEY environment variable is required."
+    )
 
-ALLOWED_HOSTS = os.getenv(
+DEBUG = os.getenv(
+    "DEBUG",
+    "False",
+).strip().lower() == "true"
+
+ALLOWED_HOSTS = get_environment_list(
     "DJANGO_ALLOWED_HOSTS",
     "localhost,127.0.0.1",
-).split(",")
+)
 
 
 # Application definition
@@ -45,24 +62,24 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     # Third-party applications
-    "rest_framework", #API framework for building web APIs
-    "corsheaders", #permettre à React de contacter Django
+    "rest_framework",
+    "corsheaders",
     "drf_spectacular",
 
     # Local applications
-    "accounts", #Authentication and user management
-    "weather",#Weather data management and retrieval
+    "accounts",
+    "weather",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    "corsheaders.middleware.CorsMiddleware", # Allow requests from React app
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -134,7 +151,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -160,10 +179,51 @@ REST_FRAMEWORK = {
     ),
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+CORS_ALLOWED_ORIGINS = get_environment_list(
+    "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173",
-]
+)
+
+CSRF_TRUSTED_ORIGINS = get_environment_list(
+    "CSRF_TRUSTED_ORIGINS",
+)
+
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)
+
+SECURE_SSL_REDIRECT = os.getenv(
+    "SECURE_SSL_REDIRECT",
+    "False",
+).strip().lower() == "true"
+
+SESSION_COOKIE_SECURE = os.getenv(
+    "SESSION_COOKIE_SECURE",
+    "False",
+).strip().lower() == "true"
+
+CSRF_COOKIE_SECURE = os.getenv(
+    "CSRF_COOKIE_SECURE",
+    "False",
+).strip().lower() == "true"
+
+SECURE_HSTS_SECONDS = int(
+    os.getenv(
+        "SECURE_HSTS_SECONDS",
+        "0",
+    )
+)
+
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    "False",
+).strip().lower() == "true"
+
+SECURE_HSTS_PRELOAD = os.getenv(
+    "SECURE_HSTS_PRELOAD",
+    "False",
+).strip().lower() == "true"
 
 
 # General information displayed in Swagger UI and ReDoc.
