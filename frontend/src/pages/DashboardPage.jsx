@@ -599,9 +599,9 @@ async function handleDailyForecastSelect(forecastDate) {
             Forecast
           </a>
 
-          <a href="#history">
+          <Link to="/history">
             History
-          </a>
+          </Link>
         </nav>
 
         <div className="header-actions">
@@ -1349,9 +1349,12 @@ async function handleDailyForecastSelect(forecastDate) {
             </p>
           </div>
 
-          <button type="button">
+          <Link 
+            className="history-banner-button"
+            to="/history"
+          >
             Open history
-          </button>
+          </Link>
         </section>
       </main>
     </div>
