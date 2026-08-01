@@ -7,6 +7,7 @@ import {
 import DashboardPage from "../pages/DashboardPage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
+import WeatherHistoryPage from "../pages/WeatherHistoryPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 
@@ -44,6 +45,16 @@ function AppRouter() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected historical weather page. */}
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <WeatherHistoryPage />
           </ProtectedRoute>
         }
       />
