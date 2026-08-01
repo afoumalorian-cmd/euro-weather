@@ -1,7 +1,86 @@
 from rest_framework import serializers
 from datetime import date, timedelta
+from weather.models import FavoriteCity
 
 
+class FavoriteCitySerializer(serializers.ModelSerializer):
+    """
+    Serialize a favorite city owned by the authenticated user.
+    """
+
+    class Meta:
+        model = FavoriteCity
+        fields = [
+            "id",
+            "city",
+            "country",
+            "latitude",
+            "longitude",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+        ]
+
+    def validate_city(self, value):
+        """
+        Normalize and validate the city name.
+        """
+
+        city = value.strip()
+
+        if not city:
+            raise serializers.ValidationError(
+                "City cannot be empty."
+            )
+
+        return city
+
+    def validate_country(self, value):
+        """
+        Normalize and validate the country name.
+        """
+
+        country = value.strip()
+
+        if not country:
+            raise serializers.ValidationError(
+                "Country cannot be empty."
+            )
+
+        return country
+
+    def validate(self, attrs):
+        """
+        Prevent the authenticated user from saving a duplicate city.
+        """
+
+        request = self.context.get("request")
+
+        if request is None or not request.user.is_authenticated:
+            return attrs
+
+        city = attrs.get("city")
+        country = attrs.get("country")
+
+        duplicate_exists = FavoriteCity.objects.filter(
+            user=request.user,
+            city__iexact=city,
+            country__iexact=country,
+        ).exists()
+
+        if duplicate_exists:
+            raise serializers.ValidationError(
+                {
+                    "city": (
+                        "This city is already present in your favorites."
+                    ),
+                }
+            )
+
+        return attrs
+    
 class LocationSearchQuerySerializer(serializers.Serializer):
     """
     Valide les paramètres reçus par l'endpoint de recherche de lieux.

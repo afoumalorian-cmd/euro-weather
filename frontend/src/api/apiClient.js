@@ -76,6 +76,9 @@ function extractValidationError(errors) {
 /**
  * Extract a readable error message from the backend payload.
  */
+/**
+ * Extract a readable error message from the backend payload.
+ */
 function extractErrorMessage(payload) {
   if (!payload) {
     return "The request could not be completed.";
@@ -91,6 +94,7 @@ function extractErrorMessage(payload) {
 
   return (
     extractValidationError(payload.errors) ??
+    extractValidationError(payload) ??
     "The request could not be completed."
   );
 }
@@ -258,6 +262,63 @@ export async function apiGet(
 
   const payload =
     await readResponsePayload(response);
+
+  if (!response.ok) {
+    throw new Error(
+      extractErrorMessage(payload),
+    );
+  }
+
+  return payload;
+}
+
+/**
+ * Perform an authenticated JSON POST request.
+ */
+export async function apiPost(
+  path,
+  body,
+) {
+  const url = `${API_BASE_URL}${path}`;
+
+  const response = await authenticatedFetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload =
+    await readResponsePayload(response);
+
+  if (!response.ok) {
+    throw new Error(
+      extractErrorMessage(payload),
+    );
+  }
+
+  return payload;
+}
+
+/**
+ * Perform an authenticated DELETE request.
+ */
+export async function apiDelete(path) {
+  const url = `${API_BASE_URL}${path}`;
+
+  const response = await authenticatedFetch(url, {
+    method: "DELETE",
+  });
+
+  /*
+   * A successful DELETE commonly returns 204 No Content,
+   * so there may be no JSON payload to read.
+   */
+  const payload =
+    response.status === 204
+      ? null
+      : await readResponsePayload(response);
 
   if (!response.ok) {
     throw new Error(

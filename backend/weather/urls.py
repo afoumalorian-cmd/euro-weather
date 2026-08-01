@@ -4,6 +4,8 @@ from weather.views import (
     CurrentWeatherView,
     DailyForecastByCityView,
     DailyForecastView,
+    FavoriteCityDetailView,
+    FavoriteCityListCreateView,
     HistoricalWeatherByCityView,
     HourlyForecastByCityView,
     LocationSearchView,
@@ -42,5 +44,15 @@ urlpatterns = [
         "history/by-city/",
         HistoricalWeatherByCityView.as_view(),
         name="historical-weather-by-city",
+    ),
+    path(
+        "favorites/",
+        FavoriteCityListCreateView.as_view(),
+        name="favorite-city-list-create",
+    ),
+    path(
+        "favorites/<int:pk>/",
+        FavoriteCityDetailView.as_view(),
+        name="favorite-city-detail",
     ),
 ]
