@@ -32,6 +32,24 @@ export function getCurrentWeather({
 }
 
 /**
+ * Retrieve the daily forecast using geographic coordinates.
+ */
+export function getDailyForecast({
+  latitude,
+  longitude,
+  days = 7,
+}) {
+  return apiGet(
+    "/api/weather/forecast/daily/",
+    {
+      latitude,
+      longitude,
+      days,
+    },
+  );
+}
+
+/**
  * Retrieve all hourly forecasts for one selected date.
  */
 export function getHourlyForecastByCity({
@@ -44,6 +62,24 @@ export function getHourlyForecastByCity({
     {
       city,
       country,
+      forecast_date: forecastDate,
+    },
+  );
+}
+
+/**
+ * Retrieve the hourly forecast using geographic coordinates.
+ */
+export function getHourlyForecast({
+  latitude,
+  longitude,
+  forecastDate,
+}) {
+  return apiGet(
+    "/api/weather/forecast/hourly/",
+    {
+      latitude,
+      longitude,
       forecast_date: forecastDate,
     },
   );
@@ -65,6 +101,22 @@ export function getHistoricalWeatherByCity({
       country,
       start_date: startDate,
       end_date: endDate,
+    },
+  );
+}
+
+/**
+ * Resolve geographic coordinates into a readable location.
+ */
+export function reverseGeocode({
+  latitude,
+  longitude,
+}) {
+  return apiGet(
+    "/api/weather/locations/reverse/",
+    {
+      latitude,
+      longitude,
     },
   );
 }

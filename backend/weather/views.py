@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+﻿from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -15,10 +15,12 @@ from weather.serializers import (
     CurrentWeatherQuerySerializer,
     DailyForecastByCityQuerySerializer,
     DailyForecastQuerySerializer,
+    FavoriteCitySerializer,
     HistoricalWeatherByCityQuerySerializer,
     HourlyForecastByCityQuerySerializer,
-    FavoriteCitySerializer,
+    HourlyForecastQuerySerializer,
     LocationSearchQuerySerializer,
+    ReverseGeocodingQuerySerializer,
 )
 from weather.services.geocoding_service import (
     GeocodingService,
@@ -45,13 +47,18 @@ from weather.services.historical_weather_service import (
     HistoricalWeatherServiceError,
     HistoricalWeatherServiceUnavailableError,
 )
+from weather.services.geocoding_service import (
+    GeocodingService,
+    GeocodingServiceError,
+    GeocodingServiceUnavailableError,
+)
 
 class LocationSearchView(APIView):
     """
     Recherche des villes et localisations avec Open-Meteo.
 
     Cet endpoint est public afin que l'utilisateur puisse rechercher
-    une ville sans être obligatoirement connecté.
+    une ville sans Ãªtre obligatoirement connectÃ©.
     """
 
     permission_classes = [AllowAny]
@@ -134,8 +141,8 @@ class LocationSearchView(APIView):
     )
     def get(self, request):
         """
-        Valide le paramètre query, appelle le service Open-Meteo
-        et retourne une réponse normalisée.
+        Valide le paramÃ¨tre query, appelle le service Open-Meteo
+        et retourne une rÃ©ponse normalisÃ©e.
         """
 
         serializer = LocationSearchQuerySerializer(
@@ -159,7 +166,7 @@ class LocationSearchView(APIView):
             )
 
         except GeocodingServiceUnavailableError as exc:
-            # L'API externe ne répond pas ou le délai est dépassé.
+            # L'API externe ne rÃ©pond pas ou le dÃ©lai est dÃ©passÃ©.
             return Response(
                 {
                     "success": False,
@@ -169,7 +176,7 @@ class LocationSearchView(APIView):
             )
 
         except GeocodingServiceError as exc:
-            # Open-Meteo a répondu, mais avec une réponse invalide
+            # Open-Meteo a rÃ©pondu, mais avec une rÃ©ponse invalide
             # ou une erreur HTTP.
             return Response(
                 {
@@ -187,9 +194,9 @@ class LocationSearchView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        
-        
-        
+
+
+
 class CurrentWeatherView(APIView):
     """
     Return the current weather conditions for a given
@@ -522,7 +529,7 @@ class DailyForecastView(APIView):
                 "data": forecast_data,
             },
             status=status.HTTP_200_OK,
-        )        
+        )
 class DailyForecastByCityView(APIView):
     """
     Return a daily weather forecast using a city
@@ -699,7 +706,183 @@ class DailyForecastByCityView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        
+
+class HourlyForecastView(APIView):
+    """
+    Return an hourly weather forecast for a given
+    latitude, longitude, and forecast date.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Get hourly weather forecast",
+        description=(
+            "Returns an hourly weather forecast for the provided "
+            "latitude, longitude, and selected date."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="latitude",
+                description="Latitude between -90 and 90.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris latitude",
+                        value=48.8566,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="longitude",
+                description="Longitude between -180 and 180.",
+                required=True,
+                type=float,
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Paris longitude",
+                        value=2.3522,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name="forecast_date",
+                description="Selected forecast date in YYYY-MM-DD format.",
+                required=True,
+                type={
+                    "type": "string",
+                    "format": "date",
+                },
+                location=OpenApiParameter.QUERY,
+                examples=[
+                    OpenApiExample(
+                        "Selected date",
+                        value="2026-08-02",
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "object",
+                            },
+                            "hourly": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                },
+                            },
+                            "units": {
+                                "type": "object",
+                            },
+                        },
+                    },
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "errors": {
+                        "type": "object",
+                    },
+                },
+            },
+            502: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                    },
+                    "error": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        tags=["Weather"],
+    )
+    def get(self, request):
+        """
+        Validate the coordinates and retrieve the hourly forecast.
+        """
+
+        serializer = HourlyForecastQuerySerializer(
+            data=request.query_params
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        latitude = serializer.validated_data["latitude"]
+        longitude = serializer.validated_data["longitude"]
+        forecast_date = serializer.validated_data["forecast_date"]
+
+        try:
+            forecast_data = HourlyForecastService.get_hourly_forecast(
+                latitude=latitude,
+                longitude=longitude,
+                forecast_date=forecast_date.isoformat(),
+            )
+
+        except HourlyForecastServiceUnavailableError as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except HourlyForecastServiceError as exc:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(exc),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "success": True,
+                "data": forecast_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class HourlyForecastByCityView(APIView):
     """
     Return an hourly weather forecast using a city
@@ -917,7 +1100,7 @@ class HourlyForecastByCityView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        
+
 class HistoricalWeatherByCityView(APIView):
     """
     Return historical daily weather data using a city,
@@ -1156,7 +1339,7 @@ class HistoricalWeatherByCityView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        
+
 
 class FavoriteCityListCreateView(ListCreateAPIView):
     """
@@ -1252,3 +1435,60 @@ class FavoriteCityDetailView(RetrieveDestroyAPIView):
         return FavoriteCity.objects.filter(
             user=self.request.user
         )
+
+
+class ReverseGeocodingView(APIView):
+    """
+    Resolve geographic coordinates into a city and country.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """
+        Return location information for the provided coordinates.
+        """
+        serializer = ReverseGeocodingQuerySerializer(
+            data=request.query_params,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        latitude = serializer.validated_data["latitude"]
+        longitude = serializer.validated_data["longitude"]
+
+        try:
+            location = GeocodingService.reverse_geocode(
+                latitude=latitude,
+                longitude=longitude,
+            )
+        except GeocodingServiceUnavailableError:
+            return Response(
+                {
+                    "error": (
+                        "The reverse geocoding service is temporarily unavailable."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except GeocodingServiceError:
+            return Response(
+                {
+                    "error": (
+                        "The reverse geocoding service could not process "
+                        "the request."
+                    )
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if location is None:
+            return Response(
+                {
+                    "error": (
+                        "No city or country could be found for these coordinates."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(location, status=status.HTTP_200_OK)

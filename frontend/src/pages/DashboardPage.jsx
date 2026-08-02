@@ -34,8 +34,11 @@ import {
 
 import {
   getCurrentWeather,
+  getDailyForecast,
   getDailyForecastByCity,
+  getHourlyForecast,
   getHourlyForecastByCity,
+  reverseGeocode,
 } from "../api/weatherApi";
 
 import {
@@ -208,6 +211,7 @@ function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [hourlyLoading, setHourlyLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
@@ -547,12 +551,161 @@ async function handleDailyForecastSelect(forecastDate) {
 }
 
   /**
-   * Browser geolocation will be connected to a coordinate endpoint later.
+   * Retrieve the user's coordinates from the browser.
    */
-  function handleUseLocation() {
-    setError(
-      "Automatic geolocation will be connected in a later step.",
-    );
+  function getBrowserPosition() {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000,
+        },
+      );
+    });
+  }
+
+  /**
+   * Load weather data using the user's current coordinates.
+   */
+  async function handleUseLocation() {
+    if (!navigator.geolocation) {
+      setError(
+        "Geolocation is not supported by this browser.",
+      );
+      return;
+    }
+
+    setLocationLoading(true);
+    setLoading(true);
+    setError("");
+
+    try {
+      const position = await getBrowserPosition();
+
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      /*
+       * Load weather data first.
+       * Reverse geocoding must not block weather loading.
+       */
+      const [
+        currentResponse,
+        dailyResponse,
+        hourlyResponse,
+      ] = await Promise.all([
+        getCurrentWeather({
+          latitude,
+          longitude,
+        }),
+        getDailyForecast({
+          latitude,
+          longitude,
+          days: 7,
+        }),
+        getHourlyForecast({
+          latitude,
+          longitude,
+          forecastDate: selectedDate,
+        }),
+      ]);
+
+      /*
+       * Use a safe fallback location first.
+       */
+      let resolvedLocation = {
+        name: "Current location",
+        country: "GPS position",
+        latitude,
+        longitude,
+      };
+
+      /*
+       * Try to retrieve the real city and country separately.
+       * A reverse geocoding failure must not remove weather data.
+       */
+      try {
+        const reverseLocation = await reverseGeocode({
+          latitude,
+          longitude,
+        });
+
+        resolvedLocation = {
+          name:
+            reverseLocation?.name ??
+            "Current location",
+          country:
+            reverseLocation?.country ??
+            "GPS position",
+          latitude,
+          longitude,
+        };
+
+        if (reverseLocation?.name) {
+          setCity(reverseLocation.name);
+        }
+
+        if (reverseLocation?.country) {
+          setCountry(reverseLocation.country);
+        }
+      } catch (reverseGeocodingError) {
+        console.error(
+          "Reverse geocoding failed:",
+          reverseGeocodingError,
+        );
+      }
+
+      setLocation(resolvedLocation);
+
+      setCurrentWeather(
+        currentResponse.data?.current ?? null,
+      );
+      setCurrentUnits(
+        currentResponse.data?.units ?? {},
+      );
+
+      setDailyForecast(
+        dailyResponse.data?.daily ?? [],
+      );
+      setDailyUnits(
+        dailyResponse.data?.units ?? {},
+      );
+
+      setHourlyForecast(
+        hourlyResponse.data?.hourly ?? [],
+      );
+      setHourlyUnits(
+        hourlyResponse.data?.units ?? {},
+      );
+
+      setLastUpdatedAt(new Date());
+    } catch (locationError) {
+      if (locationError?.code === 1) {
+        setError(
+          "Location access was denied. Please allow location access in your browser settings.",
+        );
+      } else if (locationError?.code === 2) {
+        setError(
+          "Your current location could not be determined.",
+        );
+      } else if (locationError?.code === 3) {
+        setError(
+          "The location request took too long. Please try again.",
+        );
+      } else {
+        setError(
+          locationError instanceof Error
+            ? locationError.message
+            : "Weather data for your current location could not be loaded.",
+        );
+      }
+    } finally {
+      setLocationLoading(false);
+      setLoading(false);
+    }
   }
 
   /**
@@ -861,11 +1014,22 @@ async function handleDailyForecastSelect(forecastDate) {
           <button
             className="location-button"
             type="button"
+            disabled={locationLoading}
             onClick={handleUseLocation}
           >
-            <LocateFixed size={19} />
-            Use my location
-          </button>
+            {locationLoading ? (
+              <RefreshCw
+                className="loading-spinner"
+                size={19}
+              />
+            ) : (
+              <LocateFixed size={19} />
+            )}
+
+            {locationLoading
+              ? "Locating..."
+              : "Use my location"}
+                                                                                                        </button>
 
           <button
             className="search-button"

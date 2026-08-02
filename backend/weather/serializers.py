@@ -1,5 +1,7 @@
-from rest_framework import serializers
 from datetime import date, timedelta
+
+from rest_framework import serializers
+
 from weather.models import FavoriteCity
 
 
@@ -80,12 +82,13 @@ class FavoriteCitySerializer(serializers.ModelSerializer):
             )
 
         return attrs
-    
+
+
 class LocationSearchQuerySerializer(serializers.Serializer):
     """
-    Valide les paramètres reçus par l'endpoint de recherche de lieux.
+    Validate the query parameters used to search for locations.
 
-    Exemple :
+    Example:
         GET /api/weather/locations/search/?query=Paris
     """
 
@@ -95,25 +98,24 @@ class LocationSearchQuerySerializer(serializers.Serializer):
         min_length=2,
         max_length=100,
         trim_whitespace=True,
-        help_text="Nom de la ville ou du lieu à rechercher.",
+        help_text="City or location name to search for.",
     )
 
     def validate_query(self, value: str) -> str:
         """
-        Nettoie et valide la valeur du paramètre query.
+        Normalize and validate the location search query.
         """
 
         cleaned_value = value.strip()
 
-        # Empêche les recherches composées uniquement d'espaces.
         if not cleaned_value:
             raise serializers.ValidationError(
                 "The search query cannot be empty."
             )
 
         return cleaned_value
-    
-    
+
+
 class CurrentWeatherQuerySerializer(serializers.Serializer):
     """
     Validate the coordinates used to retrieve current weather data.
@@ -132,6 +134,27 @@ class CurrentWeatherQuerySerializer(serializers.Serializer):
         max_value=180,
         help_text="Longitude between -180 and 180.",
     )
+
+
+class ReverseGeocodingQuerySerializer(serializers.Serializer):
+    """
+    Validate the coordinates used to resolve a location name.
+    """
+
+    latitude = serializers.FloatField(
+        required=True,
+        min_value=-90,
+        max_value=90,
+        help_text="Latitude between -90 and 90.",
+    )
+
+    longitude = serializers.FloatField(
+        required=True,
+        min_value=-180,
+        max_value=180,
+        help_text="Longitude between -180 and 180.",
+    )
+
 
 class DailyForecastQuerySerializer(serializers.Serializer):
     """
@@ -160,7 +183,8 @@ class DailyForecastQuerySerializer(serializers.Serializer):
         max_value=16,
         help_text="Number of forecast days between 1 and 16.",
     )
-    
+
+
 class DailyForecastByCityQuerySerializer(serializers.Serializer):
     """
     Validate the city, country name, and forecast duration
@@ -206,10 +230,52 @@ class DailyForecastByCityQuerySerializer(serializers.Serializer):
         """
 
         return value.strip()
-    
-from datetime import date, timedelta
 
-from rest_framework import serializers
+
+class HourlyForecastQuerySerializer(serializers.Serializer):
+    """
+    Validate the coordinates and selected forecast date
+    used to retrieve an hourly weather forecast.
+    """
+
+    latitude = serializers.FloatField(
+        required=True,
+        min_value=-90,
+        max_value=90,
+        help_text="Latitude between -90 and 90.",
+    )
+
+    longitude = serializers.FloatField(
+        required=True,
+        min_value=-180,
+        max_value=180,
+        help_text="Longitude between -180 and 180.",
+    )
+
+    forecast_date = serializers.DateField(
+        required=True,
+        help_text="Forecast date in YYYY-MM-DD format.",
+    )
+
+    def validate_forecast_date(self, value: date) -> date:
+        """
+        Ensure that the selected date is within the supported forecast range.
+        """
+
+        today = date.today()
+        maximum_date = today + timedelta(days=15)
+
+        if value < today:
+            raise serializers.ValidationError(
+                "The forecast date cannot be in the past."
+            )
+
+        if value > maximum_date:
+            raise serializers.ValidationError(
+                "The forecast date cannot be more than 15 days ahead."
+            )
+
+        return value
 
 
 class HourlyForecastByCityQuerySerializer(serializers.Serializer):
@@ -274,68 +340,8 @@ class HourlyForecastByCityQuerySerializer(serializers.Serializer):
             )
 
         return value
-    """
-    Validate the city, country, and selected forecast date
-    used to retrieve an hourly weather forecast.
-    """
 
-    city = serializers.CharField(
-        required=True,
-        allow_blank=False,
-        min_length=2,
-        max_length=100,
-        trim_whitespace=True,
-        help_text="City or location name, for example Paris.",
-    )
 
-    country = serializers.CharField(
-        required=True,
-        allow_blank=False,
-        min_length=2,
-        max_length=100,
-        trim_whitespace=True,
-        help_text="Full country name, for example France.",
-    )
-
-    forecast_date = serializers.DateField(
-        required=True,
-        help_text="Forecast date in YYYY-MM-DD format.",
-    )
-
-    def validate_city(self, value: str) -> str:
-        """
-        Remove unnecessary whitespace from the city name.
-        """
-
-        return value.strip()
-
-    def validate_country(self, value: str) -> str:
-        """
-        Remove unnecessary whitespace from the country name.
-        """
-
-        return value.strip()
-
-    def validate_forecast_date(self, value: date) -> date:
-        """
-        Ensure that the selected date is within the supported forecast range.
-        """
-
-        today = date.today()
-        maximum_date = today + timedelta(days=15)
-
-        if value < today:
-            raise serializers.ValidationError(
-                "The forecast date cannot be in the past."
-            )
-
-        if value > maximum_date:
-            raise serializers.ValidationError(
-                "The forecast date cannot be more than 15 days ahead."
-            )
-
-        return value
-    
 class HistoricalWeatherByCityQuerySerializer(serializers.Serializer):
     """
     Validate the city, country, and date range

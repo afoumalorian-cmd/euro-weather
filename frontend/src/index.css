@@ -2953,3 +2953,860 @@ a {
     padding: 20px 17px;
   }
 }
+
+/* Compact mobile dashboard layout. */
+@media (max-width: 700px) {
+  .dashboard-header {
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    min-height: 62px;
+    padding: 0 12px;
+  }
+
+  .dashboard-brand {
+    flex-shrink: 0;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .header-actions {
+    min-width: 0;
+    gap: 5px;
+  }
+
+  /*
+   * Keep the main dashboard actions visible on mobile.
+   */
+  .header-action-button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+  }
+
+  .notification-button {
+    display: grid;
+  }
+
+  .favorites-menu-wrapper {
+    flex-shrink: 0;
+  }
+
+  .profile-menu-button {
+    min-height: 38px;
+    padding: 3px;
+    border-radius: 12px;
+  }
+
+  .profile-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .profile-menu-button .profile-details,
+  .profile-menu-button > svg {
+    display: none;
+  }
+
+  .icon-button {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+  }
+
+  .dashboard-container {
+    width: min(100% - 20px, 1240px);
+    padding: 22px 0 45px;
+  }
+
+  .dashboard-hero {
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-hero h1 {
+    margin: 8px 0;
+    font-size: clamp(1.8rem, 9vw, 2.4rem);
+    line-height: 1.05;
+  }
+
+  .dashboard-hero > div > p:last-child {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .hero-badge {
+    padding: 6px 9px;
+    font-size: 0.64rem;
+  }
+
+  .hero-status {
+    gap: 11px;
+    margin-top: 13px;
+    font-size: 0.72rem;
+  }
+
+  .hero-date {
+    padding: 10px 12px;
+    font-size: 0.86rem;
+  }
+
+  .weather-search {
+    gap: 10px;
+    padding: 11px;
+    border-radius: 18px;
+  }
+
+  .search-introduction {
+    min-width: 0;
+    padding: 3px;
+  }
+
+  .search-field {
+    min-height: 54px;
+    padding: 0 13px;
+  }
+
+  .location-button,
+  .search-button {
+    min-height: 52px;
+    padding: 0 14px;
+  }
+
+  .current-weather-card {
+    padding: 20px;
+    border-radius: 23px;
+  }
+
+  .current-weather-top {
+    gap: 12px;
+  }
+
+  .current-weather-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .favorite-toggle-button span {
+    display: none;
+  }
+
+  .current-weather-main {
+    gap: 20px;
+    margin: 32px 0;
+  }
+
+  .weather-symbol {
+    font-size: 3.5rem;
+  }
+
+  .weather-condition strong {
+    font-size: 1.15rem;
+  }
+
+  .temperature-value {
+    font-size: 4rem;
+  }
+
+  .temperature-value span {
+    font-size: 1.45rem;
+  }
+
+  .sun-times {
+    gap: 24px;
+  }
+
+  .current-weather-summary {
+    margin: 0 -20px -20px;
+  }
+
+  .current-weather-summary > div {
+    padding: 14px;
+  }
+
+  .weather-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .metric-box {
+    min-height: 145px;
+    padding: 17px;
+    border-radius: 19px;
+  }
+
+  .metric-box strong {
+    font-size: 1.3rem;
+  }
+
+  .forecast-panel {
+    padding: 20px;
+    border-radius: 21px;
+  }
+
+  .history-banner {
+    padding: 21px;
+  }
+
+  .favorites-dropdown {
+    position: fixed;
+    top: 70px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: calc(100vh - 90px);
+  }
+}
+
+@media (max-width: 390px) {
+  .dashboard-header {
+    padding: 0 8px;
+  }
+
+  .header-actions {
+    gap: 3px;
+  }
+
+  .header-action-button,
+  .icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .profile-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .weather-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-box {
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .metric-box strong {
+    overflow-wrap: anywhere;
+    font-size: 1.14rem;
+  }
+}
+
+
+/* Dense phone layout for narrow portrait screens. */
+@media (max-width: 430px) {
+  .dashboard-container {
+    width: calc(100% - 16px);
+    padding: 16px 0 32px;
+  }
+
+  .dashboard-hero {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .dashboard-hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .dashboard-hero > div > p:last-child {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  .hero-badge {
+    font-size: 0.56rem;
+    letter-spacing: 0.025em;
+  }
+
+  .hero-status {
+    margin-top: 10px;
+    font-size: 0.65rem;
+  }
+
+  .hero-date {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .weather-search {
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 9px;
+  }
+
+  .search-introduction-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .search-introduction strong {
+    font-size: 0.78rem;
+  }
+
+  .search-introduction span:last-child {
+    font-size: 0.64rem;
+  }
+
+  .search-field {
+    min-height: 48px;
+    padding: 0 10px;
+  }
+
+  .search-field label span {
+    font-size: 0.6rem;
+  }
+
+  .search-field input {
+    font-size: 0.85rem;
+  }
+
+  .location-button,
+  .search-button {
+    min-height: 46px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+  }
+
+  .dashboard-error {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+  }
+
+  .dashboard-grid,
+  .forecast-grid {
+    gap: 14px;
+  }
+
+  .forecast-grid {
+    margin-top: 14px;
+  }
+
+  .current-weather-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .location-label {
+    font-size: 0.92rem;
+  }
+
+  .current-weather-top p {
+    margin-top: 4px;
+    font-size: 0.72rem;
+  }
+
+  .live-badge {
+    padding: 5px 8px;
+    font-size: 0.6rem;
+  }
+
+  .favorite-toggle-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  /*
+   * Keep the condition and temperature on one row
+   * to avoid an unnecessarily tall weather card.
+   */
+  .current-weather-main {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0;
+  }
+
+  .weather-condition {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .weather-symbol {
+    font-size: 2.8rem;
+  }
+
+  .weather-condition strong {
+    font-size: 0.96rem;
+  }
+
+  .weather-condition span {
+    font-size: 0.74rem;
+  }
+
+  .temperature-value {
+    margin-left: auto;
+    font-size: 3rem;
+    white-space: nowrap;
+  }
+
+  .temperature-value span {
+    font-size: 1.05rem;
+  }
+
+  .sun-times {
+    gap: 18px;
+  }
+
+  .sun-times > div {
+    gap: 7px;
+  }
+
+  .sun-times span {
+    font-size: 0.66rem;
+  }
+
+  .sun-times strong {
+    font-size: 0.8rem;
+  }
+
+  .current-weather-summary {
+    margin: 0 -16px -16px;
+  }
+
+  .current-weather-summary > div {
+    padding: 11px 12px;
+  }
+
+  .current-weather-summary span {
+    font-size: 0.62rem;
+  }
+
+  .current-weather-summary strong {
+    font-size: 0.78rem;
+  }
+
+  .weather-metrics {
+    gap: 9px;
+  }
+
+  .metric-box {
+    min-height: 118px;
+    padding: 13px;
+    border-radius: 17px;
+  }
+
+  .metric-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .metric-box > span {
+    font-size: 0.7rem;
+  }
+
+  .metric-box strong {
+    font-size: 1rem;
+  }
+
+  .metric-box small {
+    font-size: 0.68rem;
+  }
+
+  .forecast-panel {
+    padding: 16px;
+    border-radius: 19px;
+  }
+
+  .panel-header {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .panel-header h2 {
+    font-size: 1.08rem;
+  }
+
+  .eyebrow {
+    font-size: 0.62rem;
+  }
+
+  .forecast-date {
+    padding: 9px 10px;
+    font-size: 0.8rem;
+  }
+
+  .carousel-controls button {
+    width: 35px;
+    height: 35px;
+  }
+
+  .hourly-carousel {
+    gap: 10px;
+    padding: 2px 12px 12px;
+  }
+
+  .hourly-slide {
+    min-width: 108px;
+    min-height: 170px;
+    flex-basis: 108px;
+    padding: 13px 9px;
+    border-radius: 16px;
+  }
+
+  .hourly-slide-icon {
+    font-size: 2rem;
+  }
+
+  .hourly-slide-temperature {
+    font-size: 1.05rem;
+  }
+
+  .daily-item {
+    grid-template-columns: 32px 1fr auto;
+    gap: 9px;
+    min-height: 52px;
+  }
+
+  .daily-icon {
+    font-size: 1.3rem;
+  }
+
+  .daily-item > div strong,
+  .daily-item p {
+    font-size: 0.82rem;
+  }
+
+  .daily-item > div span {
+    font-size: 0.68rem;
+  }
+
+  .history-banner {
+    gap: 14px;
+    margin-top: 14px;
+    padding: 17px;
+  }
+
+  .history-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .history-banner h2 {
+    font-size: 1.12rem;
+  }
+
+  .history-banner p {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+}
+
+
+/* Compact mobile layout for history and profile pages. */
+@media (max-width: 430px) {
+  /* History page */
+
+  .history-page-header {
+    min-height: 60px;
+    padding: 0 10px;
+  }
+
+  .history-page-header .dashboard-brand span:last-child {
+    display: none;
+  }
+
+  .history-sign-out-button {
+    min-height: 38px;
+    padding: 0 13px;
+    border-radius: 11px;
+    font-size: 0.82rem;
+  }
+
+  .history-page-container {
+    width: calc(100% - 16px);
+    padding: 18px 0 38px;
+  }
+
+  .history-page-hero {
+    margin-bottom: 18px;
+  }
+
+  .history-back-link {
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+  }
+
+  .history-page-hero h1 {
+    margin: 10px 0 8px;
+    font-size: 1.8rem;
+    line-height: 1.08;
+  }
+
+  .history-page-hero > div > p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .history-search-form {
+    gap: 9px;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 18px;
+  }
+
+  .history-search-field {
+    min-height: 50px;
+    padding: 8px 11px;
+    border-radius: 12px;
+  }
+
+  .history-search-field label {
+    gap: 2px;
+  }
+
+  .history-search-field label > span {
+    font-size: 0.58rem;
+  }
+
+  .history-search-field input {
+    font-size: 0.82rem;
+  }
+
+  .history-search-button {
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+  }
+
+  .history-results-heading {
+    gap: 8px;
+    margin: 20px 0 14px;
+  }
+
+  .history-results-heading h2 {
+    margin: 3px 0;
+    font-size: 1.45rem;
+  }
+
+  .history-results-heading > div > span {
+    font-size: 0.78rem;
+  }
+
+  .history-result-count {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+
+  .history-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+
+  .history-summary-card {
+    min-height: 108px;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .history-summary-card > span {
+    font-size: 0.7rem;
+  }
+
+  .history-summary-card > strong {
+    font-size: 1.18rem;
+  }
+
+  .history-table-panel {
+    border-radius: 18px;
+  }
+
+  .history-table-panel .panel-header {
+    margin: 0;
+    padding: 16px;
+  }
+
+  .history-table-panel .panel-header h2 {
+    font-size: 1.08rem;
+  }
+
+  .history-table {
+    min-width: 720px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 11px 13px;
+    font-size: 0.75rem;
+  }
+
+  .history-table th {
+    font-size: 0.58rem;
+  }
+
+  .history-condition {
+    gap: 6px;
+  }
+
+  /* Profile page */
+
+  .profile-page-header {
+    min-height: 60px;
+    padding: 0 10px;
+  }
+
+  .profile-page-header .dashboard-brand span:last-child {
+    display: none;
+  }
+
+  .profile-back-button {
+    width: 38px;
+    min-height: 38px;
+    border-radius: 11px;
+  }
+
+  .profile-page-container {
+    width: calc(100% - 16px);
+    padding: 18px 0 40px;
+  }
+
+  .profile-page-introduction {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .profile-page-introduction h1 {
+    margin: 7px 0;
+    font-size: 1.8rem;
+    line-height: 1.05;
+  }
+
+  .profile-page-introduction > div > p:last-child {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .profile-layout {
+    gap: 16px;
+  }
+
+  .profile-summary-card,
+  .profile-form-card {
+    border-radius: 19px;
+  }
+
+  .profile-summary-card {
+    padding: 22px 16px 17px;
+  }
+
+  .profile-summary-card::before {
+    height: 88px;
+  }
+
+  .profile-large-avatar {
+    width: 78px;
+    height: 78px;
+    margin: 16px 0 12px;
+    border-width: 5px;
+    font-size: 1.4rem;
+  }
+
+  .profile-summary-card h2 {
+    margin-bottom: 3px;
+    font-size: 1.25rem;
+  }
+
+  .profile-summary-card > div:nth-of-type(2) > p {
+    font-size: 0.78rem;
+  }
+
+  .profile-summary-details {
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 16px;
+  }
+
+  .profile-summary-details > div {
+    min-height: 50px;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  .profile-summary-details small {
+    font-size: 0.58rem;
+  }
+
+  .profile-summary-details strong {
+    font-size: 0.76rem;
+  }
+
+  .profile-form-card {
+    padding: 17px 14px;
+  }
+
+  .profile-form-header {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+  }
+
+  .profile-form-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .profile-form-grid {
+    gap: 15px;
+  }
+
+  .profile-form-grid label {
+    gap: 6px;
+    font-size: 0.76rem;
+  }
+
+  .profile-form-grid input {
+    min-height: 46px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+  }
+
+  .profile-form-grid label small {
+    font-size: 0.65rem;
+  }
+
+  .profile-form-actions {
+    gap: 9px;
+    margin-top: 20px;
+    padding-top: 17px;
+  }
+
+  .profile-cancel-button,
+  .profile-save-button {
+    min-height: 45px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .history-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-summary-card {
+    min-height: 94px;
+  }
+
+  .profile-page-container,
+  .history-page-container {
+    width: calc(100% - 12px);
+  }
+}
+
+.location-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
