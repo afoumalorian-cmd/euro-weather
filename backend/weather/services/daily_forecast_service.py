@@ -1,6 +1,12 @@
 from typing import Any
 
 import requests
+from django.core.cache import cache
+
+from weather.cache_utils import (
+    DAILY_FORECAST_CACHE_TIMEOUT,
+    build_cache_key,
+)
 
 
 class DailyForecastServiceError(Exception):
@@ -77,6 +83,19 @@ class DailyForecastService:
                 When Open-Meteo returns invalid or incomplete data.
         """
 
+        cache_key = build_cache_key(
+            "daily_forecast",
+            latitude=latitude,
+            longitude=longitude,
+            days=days,
+        )
+
+        cached_forecast = cache.get(cache_key)
+
+        if cached_forecast is not None:
+            return cached_forecast
+        
+        
         params = {
             "latitude": latitude,
             "longitude": longitude,
@@ -136,11 +155,19 @@ class DailyForecastService:
         if not isinstance(daily_units, dict):
             daily_units = {}
 
-        return cls._normalize_response(
+        normalized_forecast = cls._normalize_response(
             payload=payload,
             daily=daily,
             daily_units=daily_units,
         )
+
+        cache.set(
+            cache_key,
+            normalized_forecast,
+            timeout=DAILY_FORECAST_CACHE_TIMEOUT,
+        )
+
+        return normalized_forecast
 
     @classmethod
     def _normalize_response(

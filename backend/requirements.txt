@@ -7,3 +7,4 @@ django-cors-headers
 djangorestframework-simplejwt
 drf-spectacular
 gunicorn>=23.0,<24.0
+redis>=5.0,<7.0

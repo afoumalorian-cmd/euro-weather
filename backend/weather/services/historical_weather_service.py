@@ -1,7 +1,12 @@
 from typing import Any
 
 import requests
+from django.core.cache import cache
 
+from weather.cache_utils import (
+    HISTORICAL_WEATHER_CACHE_TIMEOUT,
+    build_cache_key,
+)
 
 class HistoricalWeatherServiceError(Exception):
     """
@@ -81,7 +86,18 @@ class HistoricalWeatherService:
             HistoricalWeatherServiceError:
                 When Open-Meteo returns invalid or incomplete data.
         """
+        cache_key = build_cache_key(
+            "historical_weather",
+            latitude=latitude,
+            longitude=longitude,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
+        cached_weather = cache.get(cache_key)
+
+        if cached_weather is not None:
+            return cached_weather
         params = {
             "latitude": latitude,
             "longitude": longitude,
@@ -141,11 +157,19 @@ class HistoricalWeatherService:
         if not isinstance(daily_units, dict):
             daily_units = {}
 
-        return cls._normalize_response(
+        normalized_weather = cls._normalize_response(
             payload=payload,
             daily=daily,
             daily_units=daily_units,
         )
+
+        cache.set(
+            cache_key,
+            normalized_weather,
+            timeout=HISTORICAL_WEATHER_CACHE_TIMEOUT,
+        )
+
+        return normalized_weather
 
     @classmethod
     def _normalize_response(

@@ -9,11 +9,14 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+
 import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+# Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 def get_environment_list(variable_name, default=""):
     """
@@ -29,10 +32,10 @@ def get_environment_list(variable_name, default=""):
     ]
 
 
-# Quick-start development settings - unsuitable for production
+# Quick-start development settings - unsuitable for production.
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# SECURITY WARNING: keep the secret key used in production secret.
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 if not SECRET_KEY:
@@ -40,10 +43,12 @@ if not SECRET_KEY:
         "The SECRET_KEY environment variable is required."
     )
 
+
 DEBUG = os.getenv(
     "DEBUG",
     "False",
 ).strip().lower() == "true"
+
 
 ALLOWED_HOSTS = get_environment_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -71,6 +76,7 @@ INSTALLED_APPS = [
     "weather",
 ]
 
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -82,24 +88,35 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'config.urls'
+
+ROOT_URLCONF = "config.urls"
+
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": (
+            "django.template.backends.django.DjangoTemplates"
+        ),
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                (
+                    "django.template.context_processors.request"
+                ),
+                (
+                    "django.contrib.auth.context_processors.auth"
+                ),
+                (
+                    "django.contrib.messages.context_processors.messages"
+                ),
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
@@ -122,16 +139,28 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "MinimumLengthValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "CommonPasswordValidator"
+        ),
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "NumericPasswordValidator"
+        ),
     },
 ]
 
@@ -139,26 +168,30 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "/static/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Django REST Framework configuration
 
 REST_FRAMEWORK = {
     # JWT authentication is used by protected API endpoints.
@@ -179,34 +212,45 @@ REST_FRAMEWORK = {
     ),
 }
 
+
+# Cross-origin and CSRF configuration
+
 CORS_ALLOWED_ORIGINS = get_environment_list(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173",
 )
 
+
 CSRF_TRUSTED_ORIGINS = get_environment_list(
     "CSRF_TRUSTED_ORIGINS",
 )
+
+
+# Production security configuration
 
 SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
     "https",
 )
 
+
 SECURE_SSL_REDIRECT = os.getenv(
     "SECURE_SSL_REDIRECT",
     "False",
 ).strip().lower() == "true"
+
 
 SESSION_COOKIE_SECURE = os.getenv(
     "SESSION_COOKIE_SECURE",
     "False",
 ).strip().lower() == "true"
 
+
 CSRF_COOKIE_SECURE = os.getenv(
     "CSRF_COOKIE_SECURE",
     "False",
 ).strip().lower() == "true"
+
 
 SECURE_HSTS_SECONDS = int(
     os.getenv(
@@ -215,10 +259,12 @@ SECURE_HSTS_SECONDS = int(
     )
 )
 
+
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
     "SECURE_HSTS_INCLUDE_SUBDOMAINS",
     "False",
 ).strip().lower() == "true"
+
 
 SECURE_HSTS_PRELOAD = os.getenv(
     "SECURE_HSTS_PRELOAD",
@@ -227,6 +273,7 @@ SECURE_HSTS_PRELOAD = os.getenv(
 
 
 # General information displayed in Swagger UI and ReDoc.
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Euro Weather API",
     "DESCRIPTION": (
@@ -242,3 +289,44 @@ SPECTACULAR_SETTINGS = {
     # This is useful for write-only fields such as passwords.
     "COMPONENT_SPLIT_REQUEST": True,
 }
+
+
+# Django cache configuration.
+#
+# Redis is used when REDIS_URL is defined. This allows all Gunicorn
+# workers to share the same weather cache.
+#
+# LocMemCache remains available as a fallback for environments where
+# Redis is not configured, such as lightweight local development.
+
+REDIS_URL = os.getenv("REDIS_URL")
+
+
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django.core.cache.backends.redis.RedisCache"
+            ),
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 300,
+            "KEY_PREFIX": "euro_weather",
+            "OPTIONS": {
+                "socket_connect_timeout": 5,
+                "socket_timeout": 5,
+            },
+        },
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django.core.cache.backends.locmem.LocMemCache"
+            ),
+            "LOCATION": "euro-weather-cache",
+            "TIMEOUT": 300,
+            "OPTIONS": {
+                "MAX_ENTRIES": 1000,
+            },
+        },
+    }

@@ -2,6 +2,13 @@ import unicodedata
 from typing import Any
 
 import requests
+from django.core.cache import cache
+
+from weather.cache_utils import (
+    LOCATION_SEARCH_CACHE_TIMEOUT,
+    REVERSE_GEOCODING_CACHE_TIMEOUT,
+    build_cache_key,
+)
 
 
 class GeocodingServiceError(Exception):
@@ -70,7 +77,17 @@ class GeocodingService:
             GeocodingServiceError:
                 When the provider returns invalid location data.
         """
+        cache_key = build_cache_key(
+            "reverse_geocoding",
+            latitude=latitude,
+            longitude=longitude,
+            language=language,
+        )
 
+        cached_location = cache.get(cache_key)
+
+        if cached_location is not None:
+            return cached_location
         params = {
             "lat": latitude,
             "lon": longitude,
@@ -141,7 +158,7 @@ class GeocodingService:
                 "from these coordinates."
             )
 
-        return {
+        normalized_location = {
             "name": city,
             "country": country,
             "country_code": address.get("country_code"),
@@ -153,6 +170,14 @@ class GeocodingService:
             "display_name": payload.get("display_name"),
             "attribution": payload.get("licence"),
         }
+
+        cache.set(
+            cache_key,
+            normalized_location,
+            timeout=REVERSE_GEOCODING_CACHE_TIMEOUT,
+        )
+
+        return normalized_location
 
     @classmethod
     def search_locations(
@@ -185,6 +210,18 @@ class GeocodingService:
                 When Open-Meteo returns invalid data.
         """
 
+        cache_key = build_cache_key(
+            "location_search",
+            query=query,
+            count=count,
+            language=language,
+        )
+
+        cached_locations = cache.get(cache_key)
+
+        if cached_locations is not None:
+            return cached_locations
+        
         params = {
             "name": query,
             "count": count,
@@ -237,11 +274,19 @@ class GeocodingService:
                 "The location service returned an invalid result format."
             )
 
-        return [
+        normalized_locations = [
             cls._normalize_location(location)
             for location in results
             if isinstance(location, dict)
         ]
+
+        cache.set(
+            cache_key,
+            normalized_locations,
+            timeout=LOCATION_SEARCH_CACHE_TIMEOUT,
+        )
+
+        return normalized_locations
 
     @classmethod
     def find_location_by_country_name(

@@ -1,6 +1,12 @@
 from typing import Any
 
 import requests
+from django.core.cache import cache
+
+from weather.cache_utils import (
+    HOURLY_FORECAST_CACHE_TIMEOUT,
+    build_cache_key,
+)
 
 
 class HourlyForecastServiceError(Exception):
@@ -69,7 +75,17 @@ class HourlyForecastService:
             A normalized dictionary containing the location,
             24 hourly forecasts, and measurement units.
         """
+        cache_key = build_cache_key(
+            "hourly_forecast",
+            latitude=latitude,
+            longitude=longitude,
+            forecast_date=forecast_date,
+        )
 
+        cached_forecast = cache.get(cache_key)
+
+        if cached_forecast is not None:
+            return cached_forecast
         params = {
             "latitude": latitude,
             "longitude": longitude,
@@ -131,11 +147,19 @@ class HourlyForecastService:
         if not isinstance(hourly_units, dict):
             hourly_units = {}
 
-        return cls._normalize_response(
+        normalized_forecast = cls._normalize_response(
             payload=payload,
             hourly=hourly,
             hourly_units=hourly_units,
         )
+
+        cache.set(
+            cache_key,
+            normalized_forecast,
+            timeout=HOURLY_FORECAST_CACHE_TIMEOUT,
+        )
+
+        return normalized_forecast
 
     @classmethod
     def _normalize_response(
