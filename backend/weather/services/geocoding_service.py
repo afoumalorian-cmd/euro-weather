@@ -25,7 +25,134 @@ class GeocodingService:
     """
 
     BASE_URL = "https://geocoding-api.open-meteo.com/v1/search"
+    
     REQUEST_TIMEOUT = 10
+    
+    REVERSE_BASE_URL = (
+        "https://nominatim.openstreetmap.org/reverse"
+    )
+
+    REQUEST_HEADERS = {
+        "User-Agent": (
+            "EuroWeather/1.0 "
+            "(https://euro-weather.onrender.com)"
+        ),
+    }
+
+    @classmethod
+    def reverse_geocode(
+        cls,
+        latitude: float,
+        longitude: float,
+        language: str = "en",
+    ) -> dict[str, Any]:
+        """
+        Resolve geographic coordinates into a city and country.
+
+        Args:
+            latitude:
+                Latitude between -90 and 90.
+
+            longitude:
+                Longitude between -180 and 180.
+
+            language:
+                Preferred language for the returned location names.
+
+        Returns:
+            A normalized dictionary containing the resolved
+            city, country, and coordinates.
+
+        Raises:
+            GeocodingServiceUnavailableError:
+                When the reverse geocoding provider cannot be reached.
+
+            GeocodingServiceError:
+                When the provider returns invalid location data.
+        """
+
+        params = {
+            "lat": latitude,
+            "lon": longitude,
+            "format": "jsonv2",
+            "addressdetails": 1,
+            "accept-language": language,
+            "zoom": 10,
+        }
+
+        try:
+            response = requests.get(
+                cls.REVERSE_BASE_URL,
+                params=params,
+                headers=cls.REQUEST_HEADERS,
+                timeout=cls.REQUEST_TIMEOUT,
+            )
+
+            response.raise_for_status()
+
+        except requests.Timeout as exc:
+            raise GeocodingServiceUnavailableError(
+                "The reverse location service did not respond in time."
+            ) from exc
+
+        except requests.ConnectionError as exc:
+            raise GeocodingServiceUnavailableError(
+                "The reverse location service is currently unavailable."
+            ) from exc
+
+        except requests.HTTPError as exc:
+            raise GeocodingServiceError(
+                "The reverse location service returned an HTTP error."
+            ) from exc
+
+        except requests.RequestException as exc:
+            raise GeocodingServiceError(
+                "An unexpected error occurred while contacting "
+                "the reverse location service."
+            ) from exc
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise GeocodingServiceError(
+                "The reverse location service returned invalid JSON."
+            ) from exc
+
+        address = payload.get("address")
+
+        if not isinstance(address, dict):
+            raise GeocodingServiceError(
+                "The reverse location service returned invalid address data."
+            )
+
+        city = (
+            address.get("city")
+            or address.get("town")
+            or address.get("village")
+            or address.get("municipality")
+            or address.get("county")
+        )
+
+        country = address.get("country")
+
+        if not city or not country:
+            raise GeocodingServiceError(
+                "The city or country could not be resolved "
+                "from these coordinates."
+            )
+
+        return {
+            "name": city,
+            "country": country,
+            "country_code": address.get("country_code"),
+            "state": address.get("state"),
+            "county": address.get("county"),
+            "postcode": address.get("postcode"),
+            "latitude": latitude,
+            "longitude": longitude,
+            "display_name": payload.get("display_name"),
+            "attribution": payload.get("licence"),
+        }
 
     @classmethod
     def search_locations(

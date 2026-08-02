@@ -8,7 +8,9 @@ from weather.views import (
     FavoriteCityListCreateView,
     HistoricalWeatherByCityView,
     HourlyForecastByCityView,
+    HourlyForecastView,
     LocationSearchView,
+    ReverseGeocodingView,
 )
 
 
@@ -19,6 +21,11 @@ urlpatterns = [
         "locations/search/",
         LocationSearchView.as_view(),
         name="location-search",
+    ),
+    path(
+        "locations/reverse/",
+        ReverseGeocodingView.as_view(),
+        name="reverse-geocoding",
     ),
     path(
         "current/",
@@ -34,6 +41,11 @@ urlpatterns = [
         "forecast/daily/by-city/",
         DailyForecastByCityView.as_view(),
         name="daily-forecast-by-city",
+    ),
+    path(
+        "forecast/hourly/",
+        HourlyForecastView.as_view(),
+        name="hourly-forecast",
     ),
     path(
         "forecast/hourly/by-city/",
