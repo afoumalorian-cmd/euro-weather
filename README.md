@@ -269,7 +269,7 @@ This gives the backend control over:
 
 # Backend Architecture
 
-![Euro Weather Backend Architecture](docs/images/backend-architecture.png)
+![Euro Weather Backend Architecture](docs/images/architecture/DataBase.png)
 
 The backend is built using Django and Django REST Framework.
 
