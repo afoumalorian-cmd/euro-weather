@@ -36,7 +36,7 @@ The application is built with a **React frontend**, a **Django REST Framework ba
 
 Euro Weather provides a complete weather dashboard where authenticated users can search for a location, use their current position, view forecasts, consult historical weather data, and manage favorite cities.
 
-![Euro Weather Application Overview](docs/images/login.png)
+![Euro Weather Application Overview](docs/images/screenshots/login.png)
 
 ## Main Application Pages
 
