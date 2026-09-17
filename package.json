@@ -1,0 +1,12 @@
+{
+  "name": "euro-weather",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev -- --host 0.0.0.0 --port 4173",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test",
+    "frontend:dev": "npm --prefix frontend run dev -- --host 0.0.0.0 --port 4173",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:test": "npm --prefix frontend run test"
+  }
+}

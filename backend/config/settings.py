@@ -13,9 +13,19 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+
+for env_file in (
+    PROJECT_ROOT / ".env",
+    BASE_DIR / ".env",
+):
+    if env_file.exists():
+        load_dotenv(env_file, override=False)
 
 
 def get_environment_list(variable_name, default=""):
@@ -52,7 +62,7 @@ DEBUG = os.getenv(
 
 ALLOWED_HOSTS = get_environment_list(
     "DJANGO_ALLOWED_HOSTS",
-    "localhost,127.0.0.1",
+    "localhost,127.0.0.1,0.0.0.0,backend,host.docker.internal",
 )
 
 
@@ -217,7 +227,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = get_environment_list(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5173",
+    "http://localhost:4173,http://localhost:4174,http://localhost:5173,http://localhost:8080,http://127.0.0.1:4173,http://127.0.0.1:4174,http://127.0.0.1:5173,http://127.0.0.1:8080",
 )
 
 
